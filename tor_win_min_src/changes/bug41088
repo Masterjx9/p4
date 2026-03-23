@@ -1,0 +1,4 @@
+  o Minor bugfixes (bridges, pluggable transport):
+    - Fix a bug causing the initial tor process to hang intead of exiting with
+      RunAsDaemon, when pluggable transports are used.
+      Fixes bug 41088; bugfix on 0.4.9.1-alpha.

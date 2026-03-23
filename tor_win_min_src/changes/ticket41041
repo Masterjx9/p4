@@ -1,0 +1,10 @@
+  o Minor features (security, TLS):
+    - When we are running with OpenSSL 3.5.0 or later,
+      support using the ML-KEM768 for post-quantum key agreement.
+      Closes ticket 41041.
+
+  o Minor features (performance TLS):
+    - When running with with OpenSSL 3.0.0 or later,
+      support using X25519 for TLS key agreement.
+      (This should slightly improve performance
+      for TLS session establishment.)

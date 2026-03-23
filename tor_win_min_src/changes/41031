@@ -1,0 +1,8 @@
+  o Removed features:
+    - Relays no longer support clients that require obsolete v1 and v2
+      link handshakes. (The v3 link handshake has been supported since
+      0.2.3.6-alpha). Part of ticket 41031.
+    - Relays no longer support clients that falsely advertise TLS
+      ciphers they don't really support.
+      (Clients have not done this since 0.2.3.17-beta).
+      Part of ticket 41031.

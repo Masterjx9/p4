@@ -1,0 +1,8 @@
+  o Major features (cryptography):
+    - Clients and relays can now negotiate Counter Galois Onion (CGO)
+      relay cryptography, as designed by Jean Paul Degabriele, Alessandro
+      Melloni, Jean-Pierre Münch, and Martijn Stam.
+      CGO provides improved resistance to several kinds
+      of tagging attacks, better forward secrecy, and better
+      forgery resistance. Closes ticket 41047.
+      Implements proposal 359.

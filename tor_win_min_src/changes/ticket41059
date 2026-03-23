@@ -1,0 +1,8 @@
+  o New system requirements:
+    - When built with OpenSSL, Tor now requires OpenSSL 1.1.1 or later.
+      (We strongly recommend 3.0 or later, but still build with 1.1.1,
+      even though it is not supported by the OpenSSL team,
+      due to its presence in Debian oldstable.)
+      Part of ticket 41059.
+    - When built with LibreSSL, Tor now requires LibreSSL 3.7 or later.
+      Part of ticket 41059.

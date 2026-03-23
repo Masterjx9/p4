@@ -1,0 +1,4 @@
+  o Minor bugfixes (protocol):
+    - Set the length field correctly on RELAY_COMMAND_CONFLUX_SWITCH
+      messages.  Previously, it was always set to the maximum value.
+      Fixes bug 41056; bugfix on 0.4.8.1-alpha.

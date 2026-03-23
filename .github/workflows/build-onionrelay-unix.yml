@@ -1,0 +1,78 @@
+name: Build OnionRelay Unix
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/build-onionrelay-unix.yml"
+      - "scripts/build_onionrelay_unix.sh"
+      - "tor_win_min_src/**"
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-22.04
+            artifact_name: onionrelay-linux-x86_64
+          - os: macos-13
+            artifact_name: onionrelay-macos-intel
+          - os: macos-14
+            artifact_name: onionrelay-macos-apple-silicon
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Linux dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential \
+            pkg-config \
+            libevent-dev \
+            libssl-dev \
+            zlib1g-dev \
+            liblzma-dev \
+            libzstd-dev \
+            automake \
+            libtool \
+            autoconf
+
+      - name: Install macOS dependencies
+        if: runner.os == 'macOS'
+        run: |
+          brew update
+          brew install \
+            pkg-config \
+            libevent \
+            openssl@3 \
+            xz \
+            zstd \
+            automake \
+            libtool \
+            autoconf
+
+      - name: Build onionrelay
+        run: |
+          chmod +x scripts/build_onionrelay_unix.sh
+          scripts/build_onionrelay_unix.sh "${GITHUB_WORKSPACE}/dist" onionrelay
+
+      - name: Package artifact
+        run: |
+          mkdir -p release
+          cp dist/onionrelay release/onionrelay
+          cp tor_win_min_src/LICENSE release/LICENSE
+          tar -czf "${{ matrix.artifact_name }}.tar.gz" -C release onionrelay LICENSE
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact_name }}
+          path: ${{ matrix.artifact_name }}.tar.gz

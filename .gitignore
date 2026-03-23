@@ -1,0 +1,44 @@
+# Python virtual env / cache
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Local editor / OS files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Local runtime state and ad-hoc test data
+human_test/
+smoketest_state/
+onion_smoketest_state/
+tmp_*/
+tmp*/
+*_invite.json
+
+# Build and packaging artifacts
+build/
+dist/
+release/
+*.log
+*.tar.gz
+*.zip
+
+# Onionrelay / Tor build outputs (keep source, ignore compiled artifacts)
+tor_win_min_src/src/app/tor.exe
+tor_win_min_src/src/app/tor
+tor_win_min_src/src/app/onionrelay
+tor_win_min_src/src/app/onionrelay*
+tor_win_min_src/src/app/*.dll
+tor_win_min_src/src/app/*.so
+tor_win_min_src/src/app/*.so.*
+tor_win_min_src/src/app/*.dylib
+tor_win_min_src/libtor.a
+tor_win_min_src/config.log
+tor_win_min_src/config.status

@@ -1,0 +1,5 @@
+  o Major features (cell format):
+    - Tor now has (unused) internal support to encode and decode
+      relay messages in the new format required by our newer
+      CGO encryption algorithm.
+      Closes ticket 41051. Part of proposal 359.

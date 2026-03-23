@@ -1,0 +1,3 @@
+  o Minor features (portability):
+    - Fix warnings when compiling with GCC 15.
+      Closes ticket 41079.

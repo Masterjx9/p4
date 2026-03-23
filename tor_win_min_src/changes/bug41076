@@ -1,0 +1,3 @@
+  o Minor bugfixes (compilation):
+    - Fix linking on systems without a working stdatomic.h.
+      Fixes bug 41076; bugfix on 0.4.9.1-alpha.

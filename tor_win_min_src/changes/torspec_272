@@ -1,0 +1,4 @@
+  o Minor features (hsdesc POW):
+    - Tolerate multiple PoW schemes in onion service descriptors,
+      for future extensibility.
+      Implements torspec ticket 272.

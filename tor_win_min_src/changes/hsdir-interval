@@ -1,0 +1,2 @@
+  o Minor features (hidden services):
+    - Reduce the minimum value of hsdir_interval to match recent tor-spec change.
