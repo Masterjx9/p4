@@ -1,17 +1,20 @@
-﻿# PP2P (Persistent P2P) - Save Point
+﻿# PP2P - Persistent P2P Protocol
 
-PP2P is a persistent peer-to-peer prototype:
-- real P2P data path over WebRTC DataChannel
-- onion rendezvous/signaling for rediscovery
-- automatic renegotiation after disconnect
-- pinned peer trust (Ed25519 identity)
+PP2P keeps normal WebRTC P2P data channels and adds persistent onion rendezvous for rediscovery/reconnect after disconnect.
 
-## Current Status
+This repo is now structured as:
+- Runtime prototype: `pp2p.py`
+- Protocol crypto core: `rust/pp2p-core` + `rust/pp2p-ffi`
+- Language SDK bindings: `bindings/`
+- Onionrelay slim source/build tree: `tor_win_min_src/`
 
-Working now:
-1. Two peers can connect and exchange messages.
-2. Two peers auto-reconnect after session drop.
-3. Reconnect still works after WAN region cutover (tested by moving live peerB between Fly regions while keeping the same identity/onion key).
+## What Is Complete
+
+1. Two peers connect and exchange messages (WebRTC DataChannel).
+2. Peer reconnect logic auto-runs after session drop.
+3. Onion rendezvous identity persists (service ID + key blob in state dir).
+4. `pp2p.py` identity/envelope crypto now calls Rust core via C ABI.
+5. Multi-language SDK package scaffolds exist for Python, JS/TS, Java, C++, PHP.
 
 ## Protocol Flow
 
@@ -35,49 +38,106 @@ Working now:
                                                                                         +---------------+
 ```
 
-## Quick Start (Windows)
+## Core Architecture
 
-1. Create env and install deps:
+### Rust core
+- `rust/pp2p-core`: identity + peer_id derivation + envelope sign/verify + replay primitive
+- `rust/pp2p-ffi`: C ABI export surface
+- `include/pp2p_core.h`: shared ABI contract
+
+### Python runtime integration
+`pp2p.py` uses `bindings/python/pp2p_core.py` for:
+- identity generation/loading
+- envelope signing
+- envelope verification
+
+Legacy migration:
+- old `identity_ed25519.pem` is auto-migrated to `identity_ed25519.json` on first run.
+
+## Build Rust Core
+
+Windows:
+```powershell
+.\scripts\build_pp2p_core.ps1
+```
+
+Linux/macOS:
+```bash
+./scripts/build_pp2p_core_unix.sh
+```
+
+Output:
+- `dist/pp2p_core/windows-x64/pp2p_core.dll`
+- `dist/pp2p_core/linux-x64/libpp2p_core.so`
+- `dist/pp2p_core/macos/libpp2p_core.dylib`
+
+## Runtime Quick Start (Windows)
+
 ```powershell
 py -3 -m venv .venv
 .\.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
-```
 
-2. Build onionrelay (native Windows):
-```powershell
+# Build Rust core + onionrelay subset
+.\scripts\build_pp2p_core.ps1
 .\build_tor_subset_windows.ps1
 ```
 
-3. Initialize peers:
+Initialize peers:
 ```powershell
 .\.venv\Scripts\python.exe pp2p.py init --state-dir .\human_test\peerA
 .\.venv\Scripts\python.exe pp2p.py init --state-dir .\human_test\peerB
 ```
 
-4. Run both peers (separate terminals):
+Run peers:
 ```powershell
 .\.venv\Scripts\python.exe pp2p.py run --state-dir .\human_test\peerA --mode onion --tor-bin .\tor_win_min_src\src\app\tor.exe
 .\.venv\Scripts\python.exe pp2p.py run --state-dir .\human_test\peerB --mode onion --tor-bin .\tor_win_min_src\src\app\tor.exe
 ```
 
-5. Exchange invites and add contacts:
-- Use `/invite` inside each `pp2p>` runtime.
-- On each side, add the other invite with `/add-json ...` or `/add-file ...`.
-
-6. Test:
+At `pp2p>` prompt:
+- `/invite`
+- `/add-file <invite.json>` or `/add-json <invite-json>`
 - `/peers`
-- `/send <peer_id> hello`
-- `/drop <peer_id>` and wait for auto reconnect.
+- `/send <peer_id> <text>`
+- `/drop <peer_id>`
 
-## Useful Scripts
+## SDK Packaging Layout
 
-- `direct_smoketest.py`: local direct-mode smoke test
-- `onion_smoketest.py`: onion-mode smoke test
-- `scripts/build_onionrelay_unix.sh`: Linux/macOS onionrelay build
+- Python package: `bindings/python/pyproject.toml`
+- JavaScript package: `bindings/javascript/package.json`
+- Java Maven module: `bindings/java/pom.xml`
+- C++ CMake wrapper: `bindings/cpp/CMakeLists.txt`
+- PHP Composer package: `bindings/php/composer.json`
 
-## Repo Notes
+See [bindings/README.md](/pp2p/bindings/README.md).
 
-- `pp2p.py` is the core runtime and CLI.
-- `tor_win_min_src/` is the local minimal onionrelay source/build tree.
-- Fly test app files are intentionally local-only and ignored by `.gitignore` for this save point.
+## Onionrelay Build Pipeline (Unix)
+
+Workflow:
+- `.github/workflows/build-onionrelay-unix.yml`
+
+Build script:
+- `scripts/build_onionrelay_unix.sh`
+
+Targets:
+- Linux x86_64
+- macOS Intel
+- macOS Apple Silicon
+
+## Rust Core Build Pipeline
+
+Workflow:
+- `.github/workflows/build-pp2p-core.yml`
+
+Targets:
+- Windows x64
+- Linux x64
+- macOS Intel
+- macOS Apple Silicon
+
+## Notes
+
+- Onion is used for signaling/rendezvous persistence; media/data remains WebRTC.
+- TURN is optional; STUN default is `stun:stun.l.google.com:19302`.
+- If native core library is in a custom location, set `PP2P_CORE_LIB` env var.

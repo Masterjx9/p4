@@ -1,0 +1,65 @@
+name: Build PP2P Core
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/build-pp2p-core.yml"
+      - "rust/**"
+      - "include/pp2p_core.h"
+      - "scripts/build_pp2p_core.ps1"
+      - "scripts/build_pp2p_core_unix.sh"
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-2022
+            artifact: pp2p-core-windows-x64
+          - os: ubuntu-22.04
+            artifact: pp2p-core-linux-x64
+          - os: macos-13
+            artifact: pp2p-core-macos-intel
+          - os: macos-14
+            artifact: pp2p-core-macos-apple-silicon
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build core (Windows)
+        if: runner.os == 'Windows'
+        shell: powershell
+        run: .\scripts\build_pp2p_core.ps1
+
+      - name: Build core (Linux/macOS)
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          chmod +x scripts/build_pp2p_core_unix.sh
+          ./scripts/build_pp2p_core_unix.sh
+
+      - name: Package artifact
+        shell: bash
+        run: |
+          mkdir -p release
+          if [ "${{ runner.os }}" = "Windows" ]; then
+            cp -f dist/pp2p_core/windows-x64/* release/
+          elif [ "${{ runner.os }}" = "macOS" ]; then
+            cp -f dist/pp2p_core/macos/* release/
+          else
+            cp -f dist/pp2p_core/linux-x64/* release/
+          fi
+          tar -czf "${{ matrix.artifact }}.tar.gz" -C release .
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: ${{ matrix.artifact }}.tar.gz

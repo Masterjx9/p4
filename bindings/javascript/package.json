@@ -1,0 +1,21 @@
+{
+  "name": "@pp2p/core-sdk",
+  "version": "0.1.0",
+  "description": "Node.js SDK for the PP2P Rust core C ABI",
+  "main": "pp2p_core.js",
+  "types": "pp2p_core.d.ts",
+  "license": "MIT",
+  "keywords": [
+    "pp2p",
+    "p2p",
+    "ffi",
+    "rust"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "ffi-napi": "^4.0.3",
+    "ref-napi": "^3.0.3"
+  }
+}

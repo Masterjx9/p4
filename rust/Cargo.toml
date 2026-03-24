@@ -1,0 +1,7 @@
+[workspace]
+members = [
+  "pp2p-core",
+  "pp2p-ffi",
+]
+resolver = "2"
+

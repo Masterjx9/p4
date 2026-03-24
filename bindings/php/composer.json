@@ -1,0 +1,14 @@
+{
+  "name": "pp2p/core-sdk",
+  "description": "PHP FFI SDK for the PP2P Rust core C ABI",
+  "type": "library",
+  "license": "MIT",
+  "autoload": {
+    "psr-4": {
+      "Pp2p\\Core\\": "src/"
+    }
+  },
+  "require": {
+    "php": ">=8.1"
+  }
+}

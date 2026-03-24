@@ -36,13 +36,13 @@ from typing import Any, Optional
 
 from aiortc import RTCConfiguration, RTCDataChannel, RTCIceServer, RTCPeerConnection
 from aiortc import RTCSessionDescription
-from cryptography.exceptions import InvalidSignature
-from cryptography.hazmat.primitives import serialization
-from cryptography.hazmat.primitives.asymmetric import ed25519
+
+from pp2p_core import Pp2pCore, Pp2pCoreError
 
 
 PROTOCOL_VERSION = 1
-IDENTITY_FILE = "identity_ed25519.pem"
+IDENTITY_FILE = "identity_ed25519.json"
+LEGACY_IDENTITY_FILE = "identity_ed25519.pem"
 CONTACTS_FILE = "contacts.json"
 TOR_DIR = "tor"
 TOR_DATA_DIR = "data"
@@ -50,6 +50,8 @@ TORRC_FILE = "torrc"
 ONION_KEY_BLOB_FILE = "onion_v3_key_blob.txt"
 ONION_SERVICE_ID_FILE = "onion_service_id.txt"
 REPO_ROOT = Path(__file__).resolve().parent
+MAX_ENVELOPE_SKEW_MS = 24 * 3600 * 1000
+_PP2P_CORE: Optional[Pp2pCore] = None
 
 
 def log(msg: str) -> None:
@@ -85,16 +87,25 @@ def read_text_any_common_encoding(path: Path) -> str:
     return raw.decode("utf-8")
 
 
-def canonical_json_bytes(payload: dict[str, Any]) -> bytes:
-    return json.dumps(payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
-
-
 def b64e(data: bytes) -> str:
     return base64.b64encode(data).decode("ascii")
 
 
-def b64d(text: str) -> bytes:
-    return base64.b64decode(text.encode("ascii"))
+def get_pp2p_core() -> Pp2pCore:
+    global _PP2P_CORE
+    if _PP2P_CORE is not None:
+        return _PP2P_CORE
+
+    lib_override = os.environ.get("PP2P_CORE_LIB")
+    try:
+        _PP2P_CORE = Pp2pCore(lib_override if lib_override else None)
+    except OSError as exc:
+        raise RuntimeError(
+            "Failed to load PP2P Rust core library. "
+            "Build it first with scripts/build_pp2p_core.ps1 (Windows) or "
+            "scripts/build_pp2p_core_unix.sh (Linux/macOS), or set PP2P_CORE_LIB."
+        ) from exc
+    return _PP2P_CORE
 
 
 def derive_turn_rest_credentials(
@@ -236,51 +247,76 @@ class Contact:
         out["rendezvous"] = asdict(self.rendezvous)
         return out
 
-    def public_key(self) -> ed25519.Ed25519PublicKey:
-        return ed25519.Ed25519PublicKey.from_public_bytes(b64d(self.public_key_b64))
-
 
 @dataclass
 class Identity:
-    private_key: ed25519.Ed25519PrivateKey
+    private_key_b64: str
     public_key_b64: str
     peer_id: str
 
     @staticmethod
-    def load_or_create(path: Path) -> "Identity":
+    def load_or_create(path: Path, core: Pp2pCore) -> "Identity":
         ensure_parent(path)
         if path.exists():
-            raw = path.read_bytes()
-            private = serialization.load_pem_private_key(raw, password=None)
-            if not isinstance(private, ed25519.Ed25519PrivateKey):
-                raise RuntimeError("Identity file is not an Ed25519 private key")
-        else:
-            private = ed25519.Ed25519PrivateKey.generate()
-            pem = private.private_bytes(
-                encoding=serialization.Encoding.PEM,
-                format=serialization.PrivateFormat.PKCS8,
-                encryption_algorithm=serialization.NoEncryption(),
+            raw = json.loads(path.read_text(encoding="utf-8"))
+            identity = Identity(
+                private_key_b64=raw["private_key_b64"],
+                public_key_b64=raw["public_key_b64"],
+                peer_id=raw["peer_id"],
             )
-            path.write_bytes(pem)
+            expected_peer_id = core.peer_id_from_public_key_b64(identity.public_key_b64)
+            if identity.peer_id != expected_peer_id:
+                raise RuntimeError(
+                    "Identity peer_id does not match public_key_b64 in identity file"
+                )
+            return identity
 
+        legacy = path.parent / LEGACY_IDENTITY_FILE
+        if legacy.exists():
+            return Identity._migrate_legacy_pem(path, legacy, core)
+
+        raw_ident = core.generate_identity()
+        identity = Identity(
+            private_key_b64=raw_ident["private_key_b64"],
+            public_key_b64=raw_ident["public_key_b64"],
+            peer_id=raw_ident["peer_id"],
+        )
+        atomic_write_json(path, asdict(identity))
+        return identity
+
+    @staticmethod
+    def _migrate_legacy_pem(path: Path, legacy_path: Path, core: Pp2pCore) -> "Identity":
+        try:
+            from cryptography.hazmat.primitives import serialization
+            from cryptography.hazmat.primitives.asymmetric import ed25519
+        except Exception as exc:
+            raise RuntimeError(
+                f"Legacy identity exists at {legacy_path} but cryptography is unavailable. "
+                "Install cryptography once to migrate, then rerun."
+            ) from exc
+
+        raw_pem = legacy_path.read_bytes()
+        private = serialization.load_pem_private_key(raw_pem, password=None)
+        if not isinstance(private, ed25519.Ed25519PrivateKey):
+            raise RuntimeError(f"Legacy identity file is not Ed25519: {legacy_path}")
+
+        private_raw = private.private_bytes(
+            encoding=serialization.Encoding.Raw,
+            format=serialization.PrivateFormat.Raw,
+            encryption_algorithm=serialization.NoEncryption(),
+        )
         public_raw = private.public_key().public_bytes(
             encoding=serialization.Encoding.Raw,
             format=serialization.PublicFormat.Raw,
         )
-        public_b64 = b64e(public_raw)
-        peer_id = hashlib.sha256(public_raw).hexdigest()[:24]
-        return Identity(private_key=private, public_key_b64=public_b64, peer_id=peer_id)
-
-
-def sign_envelope(identity: Identity, payload: dict[str, Any]) -> dict[str, Any]:
-    out = dict(payload)
-    out["protocol_version"] = PROTOCOL_VERSION
-    out["signature"] = ""
-    to_sign = dict(out)
-    to_sign.pop("signature", None)
-    sig = identity.private_key.sign(canonical_json_bytes(to_sign))
-    out["signature"] = b64e(sig)
-    return out
+        identity = Identity(
+            private_key_b64=b64e(private_raw),
+            public_key_b64=b64e(public_raw),
+            peer_id=core.peer_id_from_public_key_b64(b64e(public_raw)),
+        )
+        atomic_write_json(path, asdict(identity))
+        log(f"Migrated legacy identity to {path.name}")
+        return identity
 
 
 class ReplayWindow:
@@ -338,7 +374,8 @@ class RuntimeConfig:
 class PP2PNode:
     def __init__(self, cfg: RuntimeConfig) -> None:
         self.cfg = cfg
-        self.identity = Identity.load_or_create(self.cfg.state_dir / IDENTITY_FILE)
+        self.core = get_pp2p_core()
+        self.identity = Identity.load_or_create(self.cfg.state_dir / IDENTITY_FILE, self.core)
         self.contacts: dict[str, Contact] = {}
         self.sessions: dict[str, Session] = {}
         self.replay = ReplayWindow()
@@ -825,7 +862,7 @@ class PP2PNode:
 
             payload = msg.get("payload", {})
             msg_type = payload.get("type")
-            remote_peer_id = msg["from_peer_id"]
+            remote_peer_id = msg["sender_peer_id"]
 
             if msg_type == "offer":
                 response_payload = await self._handle_offer(remote_peer_id, payload)
@@ -962,15 +999,17 @@ class PP2PNode:
             await asyncio.sleep(0.05)
 
     def _build_message(self, to_peer_id: str, payload: dict[str, Any]) -> dict[str, Any]:
-        envelope = {
-            "from_peer_id": self.identity.peer_id,
-            "to_peer_id": to_peer_id,
-            "timestamp": int(time.time()),
-            "nonce": secrets.token_hex(16),
-            "from_rendezvous": asdict(self.own_rendezvous),
-            "payload": payload,
-        }
-        return sign_envelope(self.identity, envelope)
+        try:
+            return self.core.sign_envelope(
+                private_key_b64=self.identity.private_key_b64,
+                sender_peer_id=self.identity.peer_id,
+                recipient_peer_id=to_peer_id,
+                payload=payload,
+                nonce=secrets.token_hex(16),
+                timestamp_ms=int(time.time() * 1000),
+            )
+        except Pp2pCoreError as exc:
+            raise RuntimeError(f"Envelope signing failed: {exc}") from exc
 
     async def _validate_message(
         self,
@@ -980,8 +1019,8 @@ class PP2PNode:
     ) -> None:
         if msg.get("protocol_version") != PROTOCOL_VERSION:
             raise RuntimeError("Unsupported protocol version")
-        from_peer_id = msg.get("from_peer_id")
-        to_peer_id = msg.get("to_peer_id")
+        from_peer_id = msg.get("sender_peer_id")
+        to_peer_id = msg.get("recipient_peer_id")
         if not isinstance(from_peer_id, str) or not isinstance(to_peer_id, str):
             raise RuntimeError("Invalid envelope peer IDs")
 
@@ -994,27 +1033,21 @@ class PP2PNode:
         if contact is None:
             raise RuntimeError(f"Unknown peer identity: {from_peer_id}")
 
-        now = int(time.time())
-        ts = int(msg.get("timestamp", 0))
-        if abs(now - ts) > 24 * 3600:
-            raise RuntimeError("Message timestamp out of acceptable window")
-
         nonce = str(msg.get("nonce", ""))
         if not nonce:
             raise RuntimeError("Missing nonce")
+        try:
+            self.core.verify_envelope(
+                envelope=msg,
+                signer_public_key_b64=contact.public_key_b64,
+                now_ms=int(time.time() * 1000),
+                max_skew_ms=MAX_ENVELOPE_SKEW_MS,
+            )
+        except Pp2pCoreError as exc:
+            raise RuntimeError(f"Signature verification failed: {exc}") from exc
+
         if self.replay.seen(from_peer_id, nonce):
             raise RuntimeError("Replay detected")
-
-        signature = msg.get("signature")
-        if not isinstance(signature, str) or not signature:
-            raise RuntimeError("Missing signature")
-
-        to_verify = dict(msg)
-        to_verify.pop("signature", None)
-        try:
-            contact.public_key().verify(b64d(signature), canonical_json_bytes(to_verify))
-        except InvalidSignature as exc:
-            raise RuntimeError("Signature verification failed") from exc
 
     async def _send_signal_request(self, contact: Contact, msg: dict[str, Any]) -> dict[str, Any]:
         rendezvous = contact.rendezvous
@@ -1261,7 +1294,7 @@ class PP2PNode:
 
 def state_identity(state_dir: Path) -> Identity:
     state_dir.mkdir(parents=True, exist_ok=True)
-    return Identity.load_or_create(state_dir / IDENTITY_FILE)
+    return Identity.load_or_create(state_dir / IDENTITY_FILE, get_pp2p_core())
 
 
 def load_contacts(state_dir: Path) -> dict[str, Contact]:

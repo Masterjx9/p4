@@ -5,6 +5,7 @@ __pycache__/
 *.pyc
 *.pyo
 *.pyd
+*.egg-info/
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
@@ -29,10 +30,20 @@ scripts/region_cutover_test.ps1
 # Build and packaging artifacts
 build/
 dist/
+rust/target/
 release/
 *.log
 *.tar.gz
 *.zip
+bindings/javascript/node_modules/
+bindings/javascript/package-lock.json
+bindings/python/*.egg-info/
+bindings/python/build/
+bindings/python/dist/
+bindings/java/target/
+bindings/php/vendor/
+bindings/cpp/build/
+tmp_python_sdk_dist/
 
 # Onionrelay / Tor build outputs (keep source, ignore compiled artifacts)
 tor_win_min_src/src/app/tor.exe
