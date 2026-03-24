@@ -38,36 +38,30 @@ jobs:
       - name: Verify package tarball
         run: npm pack --dry-run
 
-      - name: Check if version already published
-        id: meta
+      - name: Publish package
+        env:
+          NPM_ACCESS_TOKEN: ${{ secrets.NPM_ACCESS_TOKEN }}
         run: |
           NAME=$(node -p "require('./package.json').name")
           VERSION=$(node -p "require('./package.json').version")
-          echo "name=$NAME" >> "$GITHUB_OUTPUT"
-          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
           if npm view "$NAME@$VERSION" version >/dev/null 2>&1; then
-            echo "already_published=true" >> "$GITHUB_OUTPUT"
-            echo "Version already exists on npm; skipping publish."
-          else
-            echo "already_published=false" >> "$GITHUB_OUTPUT"
+            echo "Version $NAME@$VERSION already published; skipping."
+            exit 0
           fi
 
-      - name: Publish package (trusted publisher)
-        id: publish_trusted
-        if: steps.meta.outputs.already_published != 'true'
-        continue-on-error: true
-        run: |
-          npm publish --access public --provenance
+          unset NODE_AUTH_TOKEN
+          if npm publish --access public --provenance; then
+            echo "Published via trusted publisher."
+            exit 0
+          fi
 
-      - name: Publish package (token fallback)
-        if: steps.meta.outputs.already_published != 'true' && steps.publish_trusted.outcome == 'failure' && secrets.NPM_ACCESS_TOKEN != ''
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_ACCESS_TOKEN }}
-        run: |
-          npm publish --access public --provenance
+          if [ -n "${NPM_ACCESS_TOKEN}" ]; then
+            export NODE_AUTH_TOKEN="${NPM_ACCESS_TOKEN}"
+            npm publish --access public --provenance
+            echo "Published via token fallback."
+            exit 0
+          fi
 
-      - name: Fail if publish did not succeed
-        if: steps.meta.outputs.already_published != 'true' && steps.publish_trusted.outcome == 'failure' && secrets.NPM_ACCESS_TOKEN == ''
-        run: |
-          echo "npm trusted publish failed and NPM_ACCESS_TOKEN fallback secret is not configured."
+          echo "Trusted publish failed and NPM_ACCESS_TOKEN is not configured."
           exit 1
