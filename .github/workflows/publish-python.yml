@@ -83,10 +83,8 @@ jobs:
             artifact: win32-x64
           - os: ubuntu-22.04
             artifact: linux-x64
-          - os: macos-13
-            artifact: darwin-x64
           - os: macos-14
-            artifact: darwin-arm64
+            artifact: darwin-universal
     runs-on: ${{ matrix.os }}
 
     steps:
@@ -102,11 +100,19 @@ jobs:
         run: .\scripts\build_pp2p_core.ps1
 
       - name: Build native core (Linux/macOS)
-        if: runner.os != 'Windows'
+        if: runner.os == 'Linux'
         shell: bash
         run: |
           chmod +x scripts/build_pp2p_core_unix.sh
           ./scripts/build_pp2p_core_unix.sh
+
+      - name: Build native core (macOS universal)
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          rustup target add aarch64-apple-darwin x86_64-apple-darwin
+          cargo build --manifest-path rust/Cargo.toml --release -p pp2p-ffi --target aarch64-apple-darwin
+          cargo build --manifest-path rust/Cargo.toml --release -p pp2p-ffi --target x86_64-apple-darwin
 
       - name: Stage bundled native library (Windows)
         if: runner.os == 'Windows'
@@ -122,19 +128,14 @@ jobs:
           mkdir -p native/linux-x64
           cp -f dist/pp2p_core/linux-x64/libpp2p_core.so native/linux-x64/libpp2p_core.so
 
-      - name: Stage bundled native library (macOS Intel)
-        if: matrix.artifact == 'darwin-x64'
+      - name: Stage bundled native library (macOS universal)
+        if: runner.os == 'macOS'
         shell: bash
         run: |
           mkdir -p native/darwin-x64
-          cp -f dist/pp2p_core/macos/libpp2p_core.dylib native/darwin-x64/libpp2p_core.dylib
-
-      - name: Stage bundled native library (macOS ARM64)
-        if: matrix.artifact == 'darwin-arm64'
-        shell: bash
-        run: |
           mkdir -p native/darwin-arm64
-          cp -f dist/pp2p_core/macos/libpp2p_core.dylib native/darwin-arm64/libpp2p_core.dylib
+          cp -f rust/target/x86_64-apple-darwin/release/libpp2p_ffi.dylib native/darwin-x64/libpp2p_core.dylib
+          cp -f rust/target/aarch64-apple-darwin/release/libpp2p_ffi.dylib native/darwin-arm64/libpp2p_core.dylib
 
       - name: Upload native artifact
         uses: actions/upload-artifact@v4
