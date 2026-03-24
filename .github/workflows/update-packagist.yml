@@ -8,9 +8,6 @@ on:
   push:
     branches:
       - main
-    paths:
-      - "composer.json"
-      - "bindings/php/**"
 
 jobs:
   update:

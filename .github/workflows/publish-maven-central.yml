@@ -5,6 +5,9 @@ on:
   release:
     types:
       - published
+  push:
+    branches:
+      - main
 
 jobs:
   publish:
@@ -16,7 +19,46 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Check if version is already on Maven Central
+        id: maven_check
+        run: |
+          python - <<'PY'
+          import os
+          import urllib.error
+          import urllib.request
+          import xml.etree.ElementTree as ET
+
+          tree = ET.parse("bindings/java/pom.xml")
+          root = tree.getroot()
+          ns = {"m": "http://maven.apache.org/POM/4.0.0"}
+
+          group = root.findtext("m:groupId", namespaces=ns)
+          artifact = root.findtext("m:artifactId", namespaces=ns)
+          version = root.findtext("m:version", namespaces=ns)
+
+          group_path = group.replace(".", "/")
+          pom_url = (
+              f"https://repo1.maven.org/maven2/"
+              f"{group_path}/{artifact}/{version}/{artifact}-{version}.pom"
+          )
+
+          publish_needed = True
+          req = urllib.request.Request(pom_url, method="HEAD")
+          try:
+              with urllib.request.urlopen(req, timeout=15) as resp:
+                  if resp.status == 200:
+                      publish_needed = False
+          except urllib.error.HTTPError as e:
+              if e.code != 404:
+                  raise
+
+          print(f"{group}:{artifact}:{version} publish_needed={publish_needed}")
+          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as out:
+              out.write(f"publish_needed={'true' if publish_needed else 'false'}\n")
+          PY
+
       - name: Setup Java + Maven credentials
+        if: steps.maven_check.outputs.publish_needed == 'true'
         uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -28,6 +70,7 @@ jobs:
           gpg-passphrase: MAVEN_GPG_PASSPHRASE
 
       - name: Publish to Maven Central
+        if: steps.maven_check.outputs.publish_needed == 'true'
         env:
           MAVEN_CENTRAL_USERNAME: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
           MAVEN_CENTRAL_PASSWORD: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
@@ -42,3 +85,7 @@ jobs:
             exit 1
           fi
           mvn -B --no-transfer-progress -f bindings/java/pom.xml -Prelease deploy
+
+      - name: Skip publish (already exists)
+        if: steps.maven_check.outputs.publish_needed != 'true'
+        run: echo "Version already exists on Maven Central; skipping publish."

@@ -8,11 +8,6 @@ on:
   push:
     branches:
       - main
-    paths:
-      - ".github/workflows/publish-npm.yml"
-      - "bindings/javascript/package.json"
-      - "bindings/javascript/pp2p_core.js"
-      - "bindings/javascript/pp2p_core.d.ts"
 
 jobs:
   publish:
