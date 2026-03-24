@@ -40,6 +40,14 @@ if [[ "$(uname -s)" == "Darwin" ]]; then
 fi
 
 pushd "${SRC_DIR}" >/dev/null
+
+# Clean stale dependency metadata that can be copied from Windows/MSYS builds.
+# These files can make GNU make fail on Linux with "multiple target patterns".
+find . -type d -name .deps -prune -exec rm -rf {} + || true
+find . -name "*.Po" -delete || true
+find . -name "*.Plo" -delete || true
+rm -f config.log config.status || true
+
 make distclean >/dev/null 2>&1 || true
 ./configure "${CONFIG_FLAGS[@]}"
 make -j"${JOBS}" src/app/tor libtor.a

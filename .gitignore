@@ -1,5 +1,6 @@
 # Python virtual env / cache
 .venv/
+.venv-wsl/
 __pycache__/
 *.pyc
 *.pyo
@@ -21,6 +22,9 @@ onion_smoketest_state/
 tmp_*/
 tmp*/
 *_invite.json
+peerb_invite_live.json
+scripts/wsl_fly_smoke_test.sh
+scripts/region_cutover_test.ps1
 
 # Build and packaging artifacts
 build/
@@ -42,3 +46,10 @@ tor_win_min_src/src/app/*.dylib
 tor_win_min_src/libtor.a
 tor_win_min_src/config.log
 tor_win_min_src/config.status
+
+# Fly.io test app artifacts (kept local only for WAN testing)
+fly_test_app/
+fly.toml
+Procfile
+.dockerignore
+.github/workflows/fly-deploy.yml
