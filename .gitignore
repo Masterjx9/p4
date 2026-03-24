@@ -15,7 +15,7 @@ __pycache__/
 .idea/
 .DS_Store
 Thumbs.db
-
+.env
 # Local runtime state and ad-hoc test data
 human_test/
 smoketest_state/
@@ -44,6 +44,7 @@ bindings/java/target/
 bindings/php/vendor/
 bindings/cpp/build/
 tmp_python_sdk_dist/
+composer.lock
 
 # Onionrelay / Tor build outputs (keep source, ignore compiled artifacts)
 tor_win_min_src/src/app/tor.exe

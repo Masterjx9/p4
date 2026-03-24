@@ -18,13 +18,16 @@ Output:
 - JavaScript/TypeScript: `bindings/javascript` (`package.json`)
 - Java: `bindings/java` (`pom.xml`, JNA wrapper)
 - C++: `bindings/cpp` (`CMakeLists.txt`, wrapper static lib)
-- PHP: `bindings/php` (`composer.json`, FFI wrapper class)
+- PHP: repo root `composer.json` (autoload -> `bindings/php/src`)
+
+Maven namespace in this repo:
+- `io.github.masterjx9`
 
 Quick package commands:
 - Python: `cd bindings/python && python -m build`
 - JS/TS: `cd bindings/javascript && npm pack`
 - Java: `cd bindings/java && mvn package`
 - C++: `cd bindings/cpp && cmake -S . -B build && cmake --build build`
-- PHP: `cd bindings/php && composer install`
+- PHP: `composer install`
 
 Each binding README has language-specific usage examples.

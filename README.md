@@ -108,9 +108,31 @@ At `pp2p>` prompt:
 - JavaScript package: `bindings/javascript/package.json`
 - Java Maven module: `bindings/java/pom.xml`
 - C++ CMake wrapper: `bindings/cpp/CMakeLists.txt`
-- PHP Composer package: `bindings/php/composer.json`
+- PHP Composer package (monorepo root for Packagist): `composer.json`
 
-See [bindings/README.md](/pp2p/bindings/README.md).
+See `bindings/README.md`.
+
+## Registry Publishing
+
+Maven Central namespace string used in this repo:
+- `io.github.masterjx9`
+
+GitHub Actions workflows:
+- `.github/workflows/publish-python.yml`
+- `.github/workflows/publish-npm.yml`
+- `.github/workflows/publish-maven-central.yml`
+- `.github/workflows/update-packagist.yml`
+
+Required GitHub secrets:
+- `PYPI_API_TOKEN`
+- `MAVEN_CENTRAL_USERNAME`
+- `MAVEN_CENTRAL_PASSWORD`
+- `MAVEN_GPG_PRIVATE_KEY`
+- `MAVEN_GPG_PASSPHRASE`
+- `PACKAGIST_USERNAME`
+- `PACKAGIST_ACCESS_TOKEN`
+
+NPM workflow uses trusted publishing (OIDC), so no npm token secret is required.
 
 ## Onionrelay Build Pipeline (Unix)
 

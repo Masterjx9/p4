@@ -1,4 +1,4 @@
-package io.pp2p.sdk;
+package io.github.masterjx9.pp2p;
 
 import com.sun.jna.Library;
 import com.sun.jna.Native;

@@ -8,7 +8,6 @@ Build native core from repo root first.
 Enable `ffi` in `php.ini`, then:
 
 ```bash
-cd bindings/php
 composer install
-php example.php
+php bindings/php/example.php
 ```

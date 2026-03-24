@@ -1,7 +1,10 @@
 # Java SDK (JNA)
 
 Maven module with JNA wrapper class:
-- [Pp2pCore.java](/c:/Users/RKerrigan/Projects/pp2p/bindings/java/src/main/java/io/pp2p/sdk/Pp2pCore.java)
+- [Pp2pCore.java](/c:/Users/RKerrigan/Projects/pp2p/bindings/java/src/main/java/io/github/masterjx9/pp2p/Pp2pCore.java)
+
+Namespace/groupId configured:
+- `io.github.masterjx9`
 
 ## Build
 
@@ -23,7 +26,7 @@ mvn package
 ## Usage
 
 ```java
-import io.pp2p.sdk.Pp2pCore;
+import io.github.masterjx9.pp2p.Pp2pCore;
 
 Pp2pCore core = new Pp2pCore("C:/path/to/pp2p_core.dll");
 String identityJson = core.generateIdentityJson();

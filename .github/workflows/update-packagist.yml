@@ -1,0 +1,35 @@
+name: Update Packagist
+
+on:
+  workflow_dispatch:
+  release:
+    types:
+      - published
+  push:
+    branches:
+      - main
+    paths:
+      - "composer.json"
+      - "bindings/php/**"
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Trigger Packagist update
+        env:
+          PACKAGIST_USERNAME: ${{ secrets.PACKAGIST_USERNAME }}
+          PACKAGIST_ACCESS_TOKEN: ${{ secrets.PACKAGIST_ACCESS_TOKEN }}
+          REPO_URL: https://github.com/${{ github.repository }}
+        run: |
+          if [ -z "${PACKAGIST_USERNAME}" ] || [ -z "${PACKAGIST_ACCESS_TOKEN}" ]; then
+            echo "PACKAGIST_USERNAME / PACKAGIST_ACCESS_TOKEN secrets are missing"
+            exit 1
+          fi
+          curl -sS -X POST \
+            "https://packagist.org/api/update-package?username=${PACKAGIST_USERNAME}&apiToken=${PACKAGIST_ACCESS_TOKEN}" \
+            -H "Content-Type: application/json" \
+            -d "{\"repository\":{\"url\":\"${REPO_URL}\"}}"
