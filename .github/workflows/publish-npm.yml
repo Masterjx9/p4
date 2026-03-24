@@ -143,12 +143,23 @@ jobs:
           node-version: "20"
           registry-url: "https://registry.npmjs.org"
 
-      - name: Download native artifacts
+      - name: Download native artifact (Windows x64)
         uses: actions/download-artifact@v4
         with:
-          pattern: npm-native-*
-          merge-multiple: true
-          path: tmp_native
+          name: npm-native-win32-x64
+          path: tmp_native/win
+
+      - name: Download native artifact (Linux x64)
+        uses: actions/download-artifact@v4
+        with:
+          name: npm-native-linux-x64
+          path: tmp_native/linux
+
+      - name: Download native artifact (macOS universal)
+        uses: actions/download-artifact@v4
+        with:
+          name: npm-native-darwin-universal
+          path: tmp_native/darwin
 
       - name: Stage downloaded native payload
         shell: bash
@@ -158,14 +169,32 @@ jobs:
           mkdir -p bindings/javascript/native/darwin-x64
           mkdir -p bindings/javascript/native/darwin-arm64
 
-          cp -f tmp_native/win32-x64/pp2p_core.dll bindings/javascript/native/win32-x64/pp2p_core.dll || \
-            cp -f tmp_native/out/win32-x64/pp2p_core.dll bindings/javascript/native/win32-x64/pp2p_core.dll
-          cp -f tmp_native/linux-x64/libpp2p_core.so bindings/javascript/native/linux-x64/libpp2p_core.so || \
-            cp -f tmp_native/out/linux-x64/libpp2p_core.so bindings/javascript/native/linux-x64/libpp2p_core.so
-          cp -f tmp_native/darwin-x64/libpp2p_core.dylib bindings/javascript/native/darwin-x64/libpp2p_core.dylib || \
-            cp -f tmp_native/out/darwin-x64/libpp2p_core.dylib bindings/javascript/native/darwin-x64/libpp2p_core.dylib
-          cp -f tmp_native/darwin-arm64/libpp2p_core.dylib bindings/javascript/native/darwin-arm64/libpp2p_core.dylib || \
-            cp -f tmp_native/out/darwin-arm64/libpp2p_core.dylib bindings/javascript/native/darwin-arm64/libpp2p_core.dylib
+          WIN_SRC="$(find tmp_native/win -type f -name 'pp2p_core.dll' | head -n1)"
+          LIN_SRC="$(find tmp_native/linux -type f -name 'libpp2p_core.so' | head -n1)"
+          DARWIN_SRCS=($(find tmp_native/darwin -type f -name 'libpp2p_core.dylib'))
+          DARWIN_ARM=""
+          DARWIN_X64=""
+          for p in "${DARWIN_SRCS[@]}"; do
+            case "${p}" in
+              *darwin-arm64*|*aarch64-apple-darwin*)
+                DARWIN_ARM="${p}"
+                ;;
+              *darwin-x64*|*x86_64-apple-darwin*)
+                DARWIN_X64="${p}"
+                ;;
+            esac
+          done
+
+          if [ -z "${WIN_SRC}" ] || [ -z "${LIN_SRC}" ] || [ -z "${DARWIN_ARM}" ] || [ -z "${DARWIN_X64}" ]; then
+            echo "Failed to locate expected native artifacts."
+            find tmp_native -maxdepth 4 -type f -print
+            exit 1
+          fi
+
+          cp -f "${WIN_SRC}" bindings/javascript/native/win32-x64/pp2p_core.dll
+          cp -f "${LIN_SRC}" bindings/javascript/native/linux-x64/libpp2p_core.so
+          cp -f "${DARWIN_ARM}" bindings/javascript/native/darwin-arm64/libpp2p_core.dylib
+          cp -f "${DARWIN_X64}" bindings/javascript/native/darwin-x64/libpp2p_core.dylib
 
       - name: Verify package tarball
         run: npm pack --dry-run
