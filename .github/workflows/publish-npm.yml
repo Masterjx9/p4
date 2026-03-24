@@ -39,8 +39,6 @@ jobs:
         run: npm pack --dry-run
 
       - name: Publish package
-        env:
-          NPM_ACCESS_TOKEN: ${{ secrets.NPM_ACCESS_TOKEN }}
         run: |
           NAME=$(node -p "require('./package.json').name")
           VERSION=$(node -p "require('./package.json').version")
@@ -56,12 +54,5 @@ jobs:
             exit 0
           fi
 
-          if [ -n "${NPM_ACCESS_TOKEN}" ]; then
-            export NODE_AUTH_TOKEN="${NPM_ACCESS_TOKEN}"
-            npm publish --access public --provenance
-            echo "Published via token fallback."
-            exit 0
-          fi
-
-          echo "Trusted publish failed and NPM_ACCESS_TOKEN is not configured."
+          echo "Trusted publish failed."
           exit 1
