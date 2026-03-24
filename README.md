@@ -115,6 +115,7 @@ See `bindings/README.md`.
 ## SDK Install Commands
 
 - Python: `pip install pp2p_core`
+- Python (legacy compatibility name): `pip install pp2p-core-sdk` (installs `pp2p_core`)
 - JavaScript/TypeScript: `npm i @pythonicit/pp2p-core-sdk`
 - Java (Maven): `io.github.masterjx9:pp2p-core-sdk:0.1.0`
 - PHP (Composer): `composer require masterjx9/pp2p-core-sdk`
