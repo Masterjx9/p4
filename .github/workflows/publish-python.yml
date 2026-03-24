@@ -38,7 +38,7 @@ jobs:
           import urllib.error
           import urllib.request
 
-          with open("bindings/python/pyproject.toml", "rb") as f:
+          with open("pyproject.toml", "rb") as f:
               project = tomllib.load(f)["project"]
 
           name = project["name"]
