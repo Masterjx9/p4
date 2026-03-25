@@ -6,7 +6,7 @@
 
   <groupId>io.github.masterjx9</groupId>
   <artifactId>pp2p-core-sdk</artifactId>
-  <version>0.1.0</version>
+  <version>0.2.0</version>
   <packaging>jar</packaging>
   <name>PP2P Core SDK (Java)</name>
   <description>Java JNA SDK for the PP2P Rust core C ABI</description>
@@ -49,6 +49,15 @@
   </dependencies>
 
   <build>
+    <resources>
+      <resource>
+        <directory>${project.basedir}/../../native/pp2p_core</directory>
+        <targetPath>native/pp2p_core</targetPath>
+        <includes>
+          <include>**/*</include>
+        </includes>
+      </resource>
+    </resources>
     <plugins>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>

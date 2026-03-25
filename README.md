@@ -1,4 +1,4 @@
-﻿# PP2P - Persistent P2P Protocol
+# PP2P - Persistent P2P Protocol
 
 PP2P keeps normal WebRTC P2P data channels and adds persistent onion rendezvous for rediscovery/reconnect after disconnect.
 
@@ -117,20 +117,23 @@ See `bindings/README.md`.
 - Python: `pip install pp2p_core`
 - Python (legacy compatibility name): `pip install pp2p-core-sdk` (installs `pp2p_core`)
 - JavaScript/TypeScript: `npm i @pythonicit/pp2p-core-sdk`
-- Java (Maven): `io.github.masterjx9:pp2p-core-sdk:0.1.0`
+- Java (Maven): `io.github.masterjx9:pp2p-core-sdk:0.2.0`
 - PHP (Composer): `composer require masterjx9/pp2p-core-sdk`
 
 ## SDK Runtime Requirements
 
-Python / JS SDKs:
+Python / JS / Java / PHP SDKs:
 - `pip install pp2p_core` and `npm i @pythonicit/pp2p-core-sdk` include bundled native binaries for:
   - Windows x64
   - Linux x64
   - macOS Intel (x64)
   - macOS Apple Silicon (arm64)
 
-Java / PHP / C++ SDKs:
-- Require explicit native library path for now (`PP2P_CORE_LIB` or constructor path).
+C++ SDK:
+- Auto-resolves bundled native binaries from `native/pp2p_core/<platform>/`.
+
+All SDKs:
+- Optional override with `PP2P_CORE_LIB` for custom native library paths.
 
 Extra requirements for the Python `pp2p.py` runtime CLI:
 - `pip install -r requirements.txt`

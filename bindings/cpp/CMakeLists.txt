@@ -10,22 +10,22 @@ add_library(pp2p_core_cpp STATIC
 
 target_include_directories(pp2p_core_cpp PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/include
-  ${CMAKE_CURRENT_SOURCE_DIR}/../../include
 )
 
-if(WIN32)
-  target_link_libraries(pp2p_core_cpp PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}/../../dist/pp2p_core/windows-x64/pp2p_core.lib
-  )
-elseif(APPLE)
-  target_link_libraries(pp2p_core_cpp PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}/../../dist/pp2p_core/macos/libpp2p_core.dylib
-  )
-else()
-  target_link_libraries(pp2p_core_cpp PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}/../../dist/pp2p_core/linux-x64/libpp2p_core.so
-  )
+target_compile_definitions(pp2p_core_cpp PRIVATE
+  PP2P_NATIVE_ROOT="${CMAKE_CURRENT_SOURCE_DIR}/../../native/pp2p_core"
+)
+
+if(UNIX AND NOT APPLE)
+  target_link_libraries(pp2p_core_cpp PRIVATE dl)
 endif()
 
 add_executable(pp2p_core_cpp_example example.cpp)
 target_link_libraries(pp2p_core_cpp_example PRIVATE pp2p_core_cpp)
+
+add_custom_command(TARGET pp2p_core_cpp_example POST_BUILD
+  COMMAND ${CMAKE_COMMAND} -E make_directory $<TARGET_FILE_DIR:pp2p_core_cpp_example>/native/pp2p_core
+  COMMAND ${CMAKE_COMMAND} -E copy_directory
+          ${CMAKE_CURRENT_SOURCE_DIR}/../../native/pp2p_core
+          $<TARGET_FILE_DIR:pp2p_core_cpp_example>/native/pp2p_core
+)

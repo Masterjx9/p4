@@ -12,37 +12,27 @@ Namespace/groupId configured:
 <dependency>
   <groupId>io.github.masterjx9</groupId>
   <artifactId>pp2p-core-sdk</artifactId>
-  <version>0.1.0</version>
+  <version>0.2.0</version>
 </dependency>
 ```
 
 ## Runtime requirements
 
 - Java 11+
-- Native PP2P core library (`pp2p_core.dll` / `libpp2p_core.so` / `libpp2p_core.dylib`)
-
-## Build (local module)
-
-Build native core from repo root first:
-```bash
-./scripts/build_pp2p_core_unix.sh
-```
-or on Windows:
-```powershell
-.\scripts\build_pp2p_core.ps1
-```
-
-Then build Java module:
-```bash
-cd bindings/java
-mvn package
-```
+- Bundled native binary is auto-loaded for:
+  - Windows x64
+  - Linux x64
+  - macOS Intel (x64)
+  - macOS Apple Silicon (arm64)
 
 ## Usage
 
 ```java
 import io.github.masterjx9.pp2p.Pp2pCore;
 
-Pp2pCore core = new Pp2pCore("C:/path/to/pp2p_core.dll");
+Pp2pCore core = new Pp2pCore(); // auto-load bundled native lib
 String identityJson = core.generateIdentityJson();
 ```
+
+Optional override:
+- set `PP2P_CORE_LIB` to an absolute path to your own native library.

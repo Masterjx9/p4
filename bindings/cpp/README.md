@@ -5,12 +5,16 @@ This directory has:
 - `src/pp2p_core_cpp.cpp` implementation over `pp2p_core.h`
 - `CMakeLists.txt` for build/link
 
-## Build example
+The C++ wrapper dynamically loads the PP2P native library and auto-resolves
+bundled binaries under `native/pp2p_core/<platform>/`.
 
-Build native core from repo root first, then:
+## Build example
 
 ```bash
 cd bindings/cpp
 cmake -S . -B build
 cmake --build build --config Release
 ```
+
+Optional override:
+- set `PP2P_CORE_LIB` to an absolute path to your own native library.

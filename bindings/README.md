@@ -26,15 +26,16 @@ Maven namespace in this repo:
 Install commands:
 - Python: `pip install pp2p_core`
 - JS/TS: `npm i @pythonicit/pp2p-core-sdk`
-- Java (Maven): `io.github.masterjx9:pp2p-core-sdk:0.1.0`
+- Java (Maven): `io.github.masterjx9:pp2p-core-sdk:0.2.0`
 - PHP (Composer): `composer require masterjx9/pp2p-core-sdk`
 
 Runtime requirements (all SDKs):
-- Python/JS packages bundle native binaries for:
+- Python/JS/Java/PHP packages bundle native binaries for:
   - Windows x64
   - Linux x64
   - macOS Intel (x64)
   - macOS Apple Silicon (arm64)
-- Java/PHP/C++ currently require a native library path (`PP2P_CORE_LIB` or explicit path argument).
+- C++ auto-resolves bundled native binaries from `native/pp2p_core/<platform>/`.
+- Any SDK can be overridden with `PP2P_CORE_LIB`.
 
 Each binding README has language-specific usage examples.

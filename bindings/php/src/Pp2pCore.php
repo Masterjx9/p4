@@ -11,7 +11,7 @@ final class Pp2pCore
 {
     private FFI $ffi;
 
-    public function __construct(string $libraryPath)
+    public function __construct(?string $libraryPath = null)
     {
         $cdef = <<<CDEF
 char *pp2p_generate_identity_json(void);
@@ -33,6 +33,7 @@ unsigned char pp2p_verify_envelope_json(
 char *pp2p_last_error_message(void);
 void pp2p_free_string(char *ptr);
 CDEF;
+        $libraryPath = $this->resolveLibraryPath($libraryPath);
         $this->ffi = FFI::cdef($cdef, $libraryPath);
     }
 
@@ -100,5 +101,59 @@ CDEF;
             return true;
         }
         throw new RuntimeException($this->lastError());
+    }
+
+    private function resolveLibraryPath(?string $libraryPath): string
+    {
+        if ($libraryPath !== null && $libraryPath !== '') {
+            return $libraryPath;
+        }
+
+        $envPath = getenv('PP2P_CORE_LIB');
+        if ($envPath !== false && $envPath !== '') {
+            return $envPath;
+        }
+
+        [$platformDir, $fileName] = $this->platformTarget();
+        $repoRoot = dirname(__DIR__, 3);
+        $bundled = $repoRoot . DIRECTORY_SEPARATOR . 'native' . DIRECTORY_SEPARATOR . 'pp2p_core' .
+            DIRECTORY_SEPARATOR . $platformDir . DIRECTORY_SEPARATOR . $fileName;
+
+        if (is_file($bundled)) {
+            return $bundled;
+        }
+
+        throw new RuntimeException(
+            'PP2P native library not found for this platform. ' .
+            'Set PP2P_CORE_LIB or use a package build that includes native binaries.'
+        );
+    }
+
+    /**
+     * @return array{0:string,1:string}
+     */
+    private function platformTarget(): array
+    {
+        $family = PHP_OS_FAMILY;
+        $arch = strtolower((string)php_uname('m'));
+
+        if ($family === 'Windows') {
+            if (str_contains($arch, '64')) {
+                return ['win32-x64', 'pp2p_core.dll'];
+            }
+        } elseif ($family === 'Darwin') {
+            if ($arch === 'arm64' || $arch === 'aarch64') {
+                return ['darwin-arm64', 'libpp2p_core.dylib'];
+            }
+            if ($arch === 'x86_64' || $arch === 'amd64') {
+                return ['darwin-x64', 'libpp2p_core.dylib'];
+            }
+        } elseif ($family === 'Linux') {
+            if ($arch === 'x86_64' || $arch === 'amd64') {
+                return ['linux-x64', 'libpp2p_core.so'];
+            }
+        }
+
+        throw new RuntimeException("Unsupported platform for PP2P native library: {$family}/{$arch}");
     }
 }
