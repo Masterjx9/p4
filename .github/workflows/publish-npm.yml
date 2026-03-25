@@ -212,6 +212,11 @@ jobs:
           node-version: "20"
           registry-url: "https://registry.npmjs.org"
 
+      - name: Upgrade npm for trusted publishing
+        run: |
+          npm install -g npm@^11.5.1
+          npm --version
+
       - name: Download native artifact (Windows x64)
         uses: actions/download-artifact@v4
         with:
