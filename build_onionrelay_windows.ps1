@@ -44,12 +44,15 @@ function Get-MsysBashPath {
     return $null
 }
 
-$bash = Get-MsysBashPath
-if (-not $bash) {
-    if ($isGitHubActions) {
-        throw "MSYS2 bash not found from setup-msys2 environment (expected under `$RUNNER_TEMP\\msys64)."
+if ($isGitHubActions) {
+    # setup-msys2 wires the correct MSYS2 bash into PATH for this job.
+    $bash = "bash"
+}
+else {
+    $bash = Get-MsysBashPath
+    if (-not $bash) {
+        throw "MSYS2 bash not found. Install MSYS2 and ensure an MSYS2 bash with pacman is available."
     }
-    throw "MSYS2 bash not found. Install MSYS2 (or run msys2/setup-msys2 in CI) and retry."
 }
 if (-not (Test-Path $SourceDir)) {
     throw "Source directory not found: $SourceDir"
