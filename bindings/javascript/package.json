@@ -27,7 +27,8 @@
     "ref-napi": "^3.0.3"
   },
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "provenance": true
   },
   "files": [
     "README.md",

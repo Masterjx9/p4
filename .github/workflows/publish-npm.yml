@@ -26,5 +26,8 @@ jobs:
         
       - name: test3
         working-directory: bindings/javascript
-        run: npm publish --access public
+        run: npm publish --access public --provenance
+        env:
+          NPM_CONFIG_PROVENANCE: true
+
 
