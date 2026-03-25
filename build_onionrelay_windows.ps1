@@ -98,7 +98,7 @@ if [[ ! -x "./configure" ]]; then
   chmod +x ./autogen.sh
   if ! ./autogen.sh; then
     if command -v autoreconf >/dev/null 2>&1; then
-      autoreconf -i -f -W all
+      autoreconf -i -f
     else
       echo "autogen failed and autoreconf is unavailable" >&2
       exit 1
