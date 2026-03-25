@@ -21,7 +21,12 @@ for lib in "$@"; do
   fi
 done
 
-TMP_MRI="${TMPDIR:-/tmp}/combine_libs.$$.$RANDOM.mri"
+if command -v mktemp >/dev/null 2>&1; then
+  TMP_MRI="$(mktemp "${TMPDIR:-/tmp}/combine_libs.XXXXXX.mri")"
+else
+  TMP_MRI="${TMPDIR:-/tmp}/combine_libs.$$.$(date +%s).mri"
+fi
+
 cleanup() {
   rm -f "$TMP_MRI"
 }

@@ -86,8 +86,25 @@ cp -f /mingw64/bin/libwinpthread-1.dll src/app/
 $bashScript = $bashScript.Replace("__SRC_DIR__", $srcMsys)
 $bashScript = $bashScript.Replace("__CFG_LOG__", $cfgLogMsys)
 $bashScript = $bashScript.Replace("__MAKE_LOG__", $makeLogMsys)
+$bashScript = $bashScript -replace "`r`n", "`n"
 
-& $bash -lc $bashScript
+$tmpScript = Join-Path $repoRoot "build\onionrelay_build_tmp.sh"
+[System.IO.File]::WriteAllText(
+    $tmpScript,
+    $bashScript,
+    (New-Object System.Text.UTF8Encoding($false))
+)
+
+try {
+    $tmpScriptMsys = Convert-ToMsysPath $tmpScript
+    & $bash -lc "bash '$tmpScriptMsys'"
+    if ($LASTEXITCODE -ne 0) {
+        throw "OnionRelay build script failed with exit code $LASTEXITCODE"
+    }
+}
+finally {
+    Remove-Item -Force $tmpScript -ErrorAction SilentlyContinue
+}
 
 Write-Host ""
 Write-Host "Build complete:"
