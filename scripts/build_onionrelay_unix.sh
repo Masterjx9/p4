@@ -22,6 +22,7 @@ CONFIG_FLAGS=(
   --disable-module-relay
   --disable-module-dirauth
   --disable-module-pow
+  --disable-unittests
 )
 
 if [[ "$(uname -s)" == "Darwin" ]]; then
@@ -69,8 +70,14 @@ fi
 chmod +x ./configure
 
 make distclean >/dev/null 2>&1 || true
-./configure "${CONFIG_FLAGS[@]}"
-make -j"${JOBS}"
+if ! ./configure "${CONFIG_FLAGS[@]}"; then
+  echo "configure failed" >&2
+  exit 2
+fi
+if ! make -j"${JOBS}"; then
+  echo "make failed" >&2
+  exit 2
+fi
 
 SRC_BIN="$(find "${SRC_DIR}/src/app" -maxdepth 1 -type f -perm -111 | head -n1)"
 if [[ -z "${SRC_BIN}" ]]; then

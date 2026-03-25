@@ -131,9 +131,18 @@ chmod +x ./configure
   --disable-module-relay \
   --disable-module-dirauth \
   --disable-module-pow \
-  > "__CFG_LOG__" 2>&1
+  --disable-unittests \
+  > "__CFG_LOG__" 2>&1 || {
+    echo "configure failed; tail of __CFG_LOG__:" >&2
+    tail -n 200 "__CFG_LOG__" >&2 || true
+    exit 2
+  }
 
-make -j"$(nproc)" > "__MAKE_LOG__" 2>&1
+make -j"$(nproc)" > "__MAKE_LOG__" 2>&1 || {
+  echo "make failed; tail of __MAKE_LOG__:" >&2
+  tail -n 200 "__MAKE_LOG__" >&2 || true
+  exit 2
+}
 
 src_bin="$(find src/app -maxdepth 1 -type f -name '*.exe' | head -n1)"
 if [[ -z "${src_bin}" ]]; then
