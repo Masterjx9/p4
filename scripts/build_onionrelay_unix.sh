@@ -48,6 +48,13 @@ find . -name "*.Po" -delete || true
 find . -name "*.Plo" -delete || true
 rm -f config.log config.status || true
 
+# Generate configure script when building from source snapshots that don't
+# include pre-generated autotools outputs.
+if [[ ! -x "./configure" ]]; then
+  chmod +x ./autogen.sh
+  ./autogen.sh
+fi
+
 make distclean >/dev/null 2>&1 || true
 ./configure "${CONFIG_FLAGS[@]}"
 make -j"${JOBS}"
