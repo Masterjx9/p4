@@ -300,11 +300,34 @@ jobs:
         run: npm pack --dry-run
 
       - name: Publish package
+        id: publish_package
         working-directory: bindings/javascript
+        continue-on-error: true
         env:
           NPM_CONFIG_PROVENANCE: true
+          NPM_CONFIG_LOGLEVEL: verbose
+        shell: bash
         run: |
-          npm publish --access public --provenance
+          set -o pipefail
+          npm publish --access public --provenance 2>&1 | tee "$RUNNER_TEMP/npm-publish.log"
+
+      - name: Surface publish failure
+        if: steps.publish_package.outcome != 'success'
+        shell: bash
+        run: |
+          LOG_FILE="$RUNNER_TEMP/npm-publish.log"
+          if [ -f "$LOG_FILE" ]; then
+            tail -n 200 "$LOG_FILE"
+            mapfile -t lines < <(grep -E 'npm error|npm warn|ERR!|E[0-9A-Z]+|404|auth|trusted|provenance|repository' "$LOG_FILE" | tail -n 20 || true)
+            if [ "${#lines[@]}" -eq 0 ]; then
+              mapfile -t lines < <(tail -n 20 "$LOG_FILE")
+            fi
+            for line in "${lines[@]}"; do
+              clean_line="${line//$'\r'/}"
+              echo "::error title=npm publish::${clean_line}"
+            done
+          fi
+          exit 1
 
   skip:
     needs: preflight
