@@ -1,4 +1,4 @@
-use pp2p_core::{
+use p4_core::{
     envelope_from_json, envelope_to_json, generate_identity, peer_id_from_public_key_b64,
     sign_envelope, signing_key_from_b64, verifying_key_from_b64, CoreError,
 };
@@ -54,7 +54,7 @@ where
 }
 
 #[unsafe(no_mangle)]
-pub extern "C" fn pp2p_generate_identity_json() -> *mut c_char {
+pub extern "C" fn p4_generate_identity_json() -> *mut c_char {
     match with_error_capture(|| {
         let identity = generate_identity();
         serde_json::to_string(&identity).map_err(|e| CoreError::Json(e.to_string()))
@@ -65,7 +65,7 @@ pub extern "C" fn pp2p_generate_identity_json() -> *mut c_char {
 }
 
 #[unsafe(no_mangle)]
-pub extern "C" fn pp2p_peer_id_from_public_key_b64(public_key_b64: *const c_char) -> *mut c_char {
+pub extern "C" fn p4_peer_id_from_public_key_b64(public_key_b64: *const c_char) -> *mut c_char {
     match with_error_capture(|| {
         let key = read_cstr(public_key_b64, "public_key_b64")?;
         peer_id_from_public_key_b64(&key)
@@ -76,7 +76,7 @@ pub extern "C" fn pp2p_peer_id_from_public_key_b64(public_key_b64: *const c_char
 }
 
 #[unsafe(no_mangle)]
-pub extern "C" fn pp2p_sign_envelope_json(
+pub extern "C" fn p4_sign_envelope_json(
     private_key_b64: *const c_char,
     sender_peer_id: *const c_char,
     recipient_peer_id: *const c_char,
@@ -110,7 +110,7 @@ pub extern "C" fn pp2p_sign_envelope_json(
 }
 
 #[unsafe(no_mangle)]
-pub extern "C" fn pp2p_verify_envelope_json(
+pub extern "C" fn p4_verify_envelope_json(
     envelope_json: *const c_char,
     signer_public_key_b64: *const c_char,
     now_ms: u64,
@@ -121,7 +121,7 @@ pub extern "C" fn pp2p_verify_envelope_json(
         let signer_key_raw = read_cstr(signer_public_key_b64, "signer_public_key_b64")?;
         let envelope = envelope_from_json(&envelope_raw)?;
         let verifying_key = verifying_key_from_b64(&signer_key_raw)?;
-        pp2p_core::verify_envelope(&envelope, &verifying_key, now_ms, max_skew_ms)?;
+        p4_core::verify_envelope(&envelope, &verifying_key, now_ms, max_skew_ms)?;
         Ok(())
     }) {
         Some(()) => 1,
@@ -130,7 +130,7 @@ pub extern "C" fn pp2p_verify_envelope_json(
 }
 
 #[unsafe(no_mangle)]
-pub extern "C" fn pp2p_last_error_message() -> *mut c_char {
+pub extern "C" fn p4_last_error_message() -> *mut c_char {
     let msg = LAST_ERROR
         .lock()
         .ok()
@@ -140,7 +140,7 @@ pub extern "C" fn pp2p_last_error_message() -> *mut c_char {
 }
 
 #[unsafe(no_mangle)]
-pub extern "C" fn pp2p_free_string(ptr: *mut c_char) {
+pub extern "C" fn p4_free_string(ptr: *mut c_char) {
     if ptr.is_null() {
         return;
     }
@@ -148,4 +148,5 @@ pub extern "C" fn pp2p_free_string(ptr: *mut c_char) {
         let _ = CString::from_raw(ptr);
     }
 }
+
 

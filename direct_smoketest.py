@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Local smoke test for PP2P protocol without Tor.
+Local smoke test for P4 protocol without onion relay.
 
 It validates:
 1) Two nodes negotiate and connect.
@@ -17,7 +17,7 @@ import shutil
 import time
 from pathlib import Path
 
-from pp2p import Contact, Rendezvous, RuntimeConfig, PP2PNode, save_contacts, state_identity
+from p4 import Contact, Rendezvous, RuntimeConfig, P4Node, save_contacts, state_identity
 
 
 async def wait_until(pred, timeout: float, label: str) -> None:
@@ -68,10 +68,10 @@ async def run_test(base_dir: Path) -> None:
         turn_password=None,
         turn_secret=None,
         turn_ttl_seconds=3600,
-        turn_user="pp2p",
-        tor_bin=None,
-        tor_socks_port=0,
-        tor_control_port=0,
+        turn_user="p4",
+        onionrelay_bin=None,
+        onionrelay_socks_port=0,
+        onionrelay_control_port=0,
         no_stdin=True,
     )
     bob_cfg = RuntimeConfig(
@@ -87,15 +87,15 @@ async def run_test(base_dir: Path) -> None:
         turn_password=None,
         turn_secret=None,
         turn_ttl_seconds=3600,
-        turn_user="pp2p",
-        tor_bin=None,
-        tor_socks_port=0,
-        tor_control_port=0,
+        turn_user="p4",
+        onionrelay_bin=None,
+        onionrelay_socks_port=0,
+        onionrelay_control_port=0,
         no_stdin=True,
     )
 
-    alice = PP2PNode(alice_cfg)
-    bob = PP2PNode(bob_cfg)
+    alice = P4Node(alice_cfg)
+    bob = P4Node(bob_cfg)
 
     alice_task = asyncio.create_task(alice.run(), name="alice-run")
     bob_task = asyncio.create_task(bob.run(), name="bob-run")
@@ -137,7 +137,7 @@ async def run_test(base_dir: Path) -> None:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Run local PP2P direct smoke test")
+    parser = argparse.ArgumentParser(description="Run local P4 direct smoke test")
     parser.add_argument("--base-dir", default="smoketest_state")
     args = parser.parse_args()
 
@@ -149,3 +149,6 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
+
+
+

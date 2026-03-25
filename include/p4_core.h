@@ -1,5 +1,5 @@
-#ifndef PP2P_CORE_H
-#define PP2P_CORE_H
+#ifndef P4_CORE_H
+#define P4_CORE_H
 
 #include <stdint.h>
 
@@ -11,12 +11,12 @@ extern "C" {
  * Returns identity JSON:
  * {"private_key_b64":"...","public_key_b64":"...","peer_id":"..."}
  */
-char *pp2p_generate_identity_json(void);
+char *p4_generate_identity_json(void);
 
 /**
  * Returns peer_id (first 24 hex chars of sha256(public_key_raw)).
  */
-char *pp2p_peer_id_from_public_key_b64(const char *public_key_b64);
+char *p4_peer_id_from_public_key_b64(const char *public_key_b64);
 
 /**
  * Signs a protocol envelope and returns JSON:
@@ -30,7 +30,7 @@ char *pp2p_peer_id_from_public_key_b64(const char *public_key_b64);
  *   "signature_b64":"..."
  * }
  */
-char *pp2p_sign_envelope_json(
+char *p4_sign_envelope_json(
     const char *private_key_b64,
     const char *sender_peer_id,
     const char *recipient_peer_id,
@@ -42,7 +42,7 @@ char *pp2p_sign_envelope_json(
 /**
  * Returns 1 on valid envelope signature+peer_id+timestamp, otherwise 0.
  */
-unsigned char pp2p_verify_envelope_json(
+unsigned char p4_verify_envelope_json(
     const char *envelope_json,
     const char *signer_public_key_b64,
     uint64_t now_ms,
@@ -51,18 +51,19 @@ unsigned char pp2p_verify_envelope_json(
 
 /**
  * Returns last error string from the current process.
- * Always returns a heap string (possibly empty); free with pp2p_free_string.
+ * Always returns a heap string (possibly empty); free with p4_free_string.
  */
-char *pp2p_last_error_message(void);
+char *p4_last_error_message(void);
 
 /**
  * Frees strings returned by this library.
  */
-void pp2p_free_string(char *ptr);
+void p4_free_string(char *ptr);
 
 #ifdef __cplusplus
 }
 #endif
 
 #endif
+
 

@@ -1,7 +1,7 @@
 # Java SDK (JNA)
 
 Maven module with JNA wrapper class:
-- [Pp2pCore.java](/c:/Users/RKerrigan/Projects/pp2p/bindings/java/src/main/java/io/github/masterjx9/pp2p/Pp2pCore.java)
+- [P4Core.java](src/main/java/io/github/masterjx9/p4/P4Core.java)
 
 Namespace/groupId configured:
 - `io.github.masterjx9`
@@ -11,7 +11,7 @@ Namespace/groupId configured:
 ```xml
 <dependency>
   <groupId>io.github.masterjx9</groupId>
-  <artifactId>pp2p-core-sdk</artifactId>
+  <artifactId>p4-core-sdk</artifactId>
   <version>0.2.0</version>
 </dependency>
 ```
@@ -28,11 +28,12 @@ Namespace/groupId configured:
 ## Usage
 
 ```java
-import io.github.masterjx9.pp2p.Pp2pCore;
+import io.github.masterjx9.p4.P4Core;
 
-Pp2pCore core = new Pp2pCore(); // auto-load bundled native lib
+P4Core core = new P4Core(); // auto-load bundled native lib
 String identityJson = core.generateIdentityJson();
 ```
 
 Optional override:
-- set `PP2P_CORE_LIB` to an absolute path to your own native library.
+- set `P4_CORE_LIB` to an absolute path to your own native library.
+

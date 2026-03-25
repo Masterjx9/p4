@@ -3,14 +3,14 @@ requires = ["setuptools>=68", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "pp2p-core-sdk"
+name = "p4-core-sdk"
 version = "0.2.2"
-description = "Deprecated compatibility package. Use pp2p_core."
+description = "Deprecated compatibility package. Use p4_core."
 readme = "README.md"
 requires-python = ">=3.9"
-authors = [{ name = "PP2P" }]
+authors = [{ name = "P4" }]
 license = "MIT"
-dependencies = ["pp2p_core>=0.2.2"]
+dependencies = ["p4_core>=0.2.2"]
 classifiers = [
   "Programming Language :: Python :: 3",
   "Programming Language :: Python :: 3 :: Only",
@@ -19,3 +19,5 @@ classifiers = [
 
 [tool.setuptools]
 py-modules = []
+
+

@@ -1,5 +1,5 @@
 """
-Python ctypes bridge for the Rust PP2P core C ABI.
+Python ctypes bridge for the Rust P4 core C ABI.
 """
 
 from __future__ import annotations
@@ -14,10 +14,10 @@ from typing import Any
 
 def _platform_lib_name() -> str:
     if os.name == "nt":
-        return "pp2p_core.dll"
+        return "p4_core.dll"
     if os.uname().sysname == "Darwin":
-        return "libpp2p_core.dylib"
-    return "libpp2p_core.so"
+        return "libp4_core.dylib"
+    return "libp4_core.so"
 
 
 def _platform_native_dir() -> str | None:
@@ -38,7 +38,7 @@ def _platform_native_dir() -> str | None:
 
 
 def _default_library_path() -> str:
-    env = os.environ.get("PP2P_CORE_LIB")
+    env = os.environ.get("P4_CORE_LIB")
     if env:
         return env
 
@@ -57,11 +57,11 @@ def _default_library_path() -> str:
 
     # Fallback for local source-tree runs.
     if os.name == "nt":
-        rel = pathlib.Path("dist") / "pp2p_core" / "windows-x64" / "pp2p_core.dll"
+        rel = pathlib.Path("dist") / "p4_core" / "windows-x64" / "p4_core.dll"
     elif os.uname().sysname == "Darwin":
-        rel = pathlib.Path("dist") / "pp2p_core" / "macos" / "libpp2p_core.dylib"
+        rel = pathlib.Path("dist") / "p4_core" / "macos" / "libp4_core.dylib"
     else:
-        rel = pathlib.Path("dist") / "pp2p_core" / "linux-x64" / "libpp2p_core.so"
+        rel = pathlib.Path("dist") / "p4_core" / "linux-x64" / "libp4_core.so"
 
     candidates = [
         pathlib.Path(__file__).resolve().parents[3] / rel,
@@ -75,19 +75,19 @@ def _default_library_path() -> str:
     return str(bundled)
 
 
-class Pp2pCoreError(RuntimeError):
+class P4CoreError(RuntimeError):
     pass
 
 
-class Pp2pCore:
+class P4Core:
     def __init__(self, lib_path: str | None = None) -> None:
         path = lib_path or _default_library_path()
         self._lib = ctypes.CDLL(path)
 
-        self._lib.pp2p_generate_identity_json.restype = ctypes.c_void_p
-        self._lib.pp2p_peer_id_from_public_key_b64.argtypes = [ctypes.c_char_p]
-        self._lib.pp2p_peer_id_from_public_key_b64.restype = ctypes.c_void_p
-        self._lib.pp2p_sign_envelope_json.argtypes = [
+        self._lib.p4_generate_identity_json.restype = ctypes.c_void_p
+        self._lib.p4_peer_id_from_public_key_b64.argtypes = [ctypes.c_char_p]
+        self._lib.p4_peer_id_from_public_key_b64.restype = ctypes.c_void_p
+        self._lib.p4_sign_envelope_json.argtypes = [
             ctypes.c_char_p,
             ctypes.c_char_p,
             ctypes.c_char_p,
@@ -95,38 +95,38 @@ class Pp2pCore:
             ctypes.c_uint64,
             ctypes.c_char_p,
         ]
-        self._lib.pp2p_sign_envelope_json.restype = ctypes.c_void_p
-        self._lib.pp2p_verify_envelope_json.argtypes = [
+        self._lib.p4_sign_envelope_json.restype = ctypes.c_void_p
+        self._lib.p4_verify_envelope_json.argtypes = [
             ctypes.c_char_p,
             ctypes.c_char_p,
             ctypes.c_uint64,
             ctypes.c_uint64,
         ]
-        self._lib.pp2p_verify_envelope_json.restype = ctypes.c_ubyte
-        self._lib.pp2p_last_error_message.restype = ctypes.c_void_p
-        self._lib.pp2p_free_string.argtypes = [ctypes.c_void_p]
+        self._lib.p4_verify_envelope_json.restype = ctypes.c_ubyte
+        self._lib.p4_last_error_message.restype = ctypes.c_void_p
+        self._lib.p4_free_string.argtypes = [ctypes.c_void_p]
 
     def _take_string(self, ptr: int | None) -> str:
         if not ptr:
-            raise Pp2pCoreError(self.last_error())
+            raise P4CoreError(self.last_error())
         try:
             raw = ctypes.cast(ptr, ctypes.c_char_p).value or b""
             return raw.decode("utf-8")
         finally:
-            self._lib.pp2p_free_string(ptr)
+            self._lib.p4_free_string(ptr)
 
     def last_error(self) -> str:
-        ptr = self._lib.pp2p_last_error_message()
+        ptr = self._lib.p4_last_error_message()
         if not ptr:
             return "unknown error"
         return self._take_string(ptr)
 
     def generate_identity(self) -> dict[str, Any]:
-        ptr = self._lib.pp2p_generate_identity_json()
+        ptr = self._lib.p4_generate_identity_json()
         return json.loads(self._take_string(ptr))
 
     def peer_id_from_public_key_b64(self, public_key_b64: str) -> str:
-        ptr = self._lib.pp2p_peer_id_from_public_key_b64(public_key_b64.encode("utf-8"))
+        ptr = self._lib.p4_peer_id_from_public_key_b64(public_key_b64.encode("utf-8"))
         return self._take_string(ptr)
 
     def sign_envelope(
@@ -140,7 +140,7 @@ class Pp2pCore:
     ) -> dict[str, Any]:
         if timestamp_ms is None:
             timestamp_ms = int(time.time() * 1000)
-        ptr = self._lib.pp2p_sign_envelope_json(
+        ptr = self._lib.p4_sign_envelope_json(
             private_key_b64.encode("utf-8"),
             sender_peer_id.encode("utf-8"),
             recipient_peer_id.encode("utf-8"),
@@ -159,7 +159,7 @@ class Pp2pCore:
     ) -> bool:
         if now_ms is None:
             now_ms = int(time.time() * 1000)
-        ok = self._lib.pp2p_verify_envelope_json(
+        ok = self._lib.p4_verify_envelope_json(
             json.dumps(envelope, separators=(",", ":")).encode("utf-8"),
             signer_public_key_b64.encode("utf-8"),
             ctypes.c_uint64(now_ms),
@@ -167,4 +167,6 @@ class Pp2pCore:
         )
         if ok == 1:
             return True
-        raise Pp2pCoreError(self.last_error())
+        raise P4CoreError(self.last_error())
+
+

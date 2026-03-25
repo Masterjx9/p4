@@ -1,14 +1,15 @@
-[package]
-name = "pp2p-ffi"
+﻿[package]
+name = "p4-ffi"
 version = "0.1.0"
 edition = "2021"
 license = "MIT"
-description = "C ABI bindings for pp2p-core"
+description = "C ABI bindings for p4-core"
 
 [lib]
 crate-type = ["cdylib", "staticlib"]
 
 [dependencies]
-pp2p-core = { path = "../pp2p-core" }
+p4-core = { path = "../p4-core" }
 serde_json = "1"
+
 

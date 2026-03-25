@@ -1,16 +1,16 @@
-# PP2P (Persistent Peer-to-Peer Protocol)
+# P4 (Persistent Point-to-Point Protocol)
 
-PP2P keeps normal P2P data paths (WebRTC/DataChannel) and adds persistent onion rendezvous for rediscovery and automatic reconnect after disconnects.
+P4 keeps normal point-to-point data paths (WebRTC/DataChannel) and adds persistent onion rendezvous for rediscovery and automatic reconnect after disconnects.
 
 This repository is a monorepo containing:
-- Runtime reference CLI: `pp2p.py`
-- Rust core + C ABI: `rust/pp2p-core`, `rust/pp2p-ffi`, `include/pp2p_core.h`
+- Runtime reference CLI: `p4.py`
+- Rust core + C ABI: `rust/p4-core`, `rust/p4-ffi`, `include/p4_core.h`
 - SDK bindings: `bindings/`
-- Minimal onion relay source/build tree: `tor_win_min_src/`
+- Minimal onion relay source/build tree: `onionrelay_src/`
 
-## Why PP2P
+## Why P4
 
-Use PP2P when you want direct encrypted peer communication without making a central app server the permanent source of truth.
+Use P4 when you want direct encrypted peer communication without making a central app server the permanent source of truth.
 
 Example use cases:
 - Personal file sync (Dropbox alternative)
@@ -43,29 +43,29 @@ Platforms with bundled native core binaries:
 ## SDK Packages (Install First)
 
 Python:
-- Package: `pp2p_core`
-- PyPI: `https://pypi.org/project/pp2p_core/`
-- Install: `pip install pp2p_core`
-- Legacy compatibility package: `pp2p-core-sdk` (`https://pypi.org/project/pp2p-core-sdk/`)
-- Note: the official package name is `pp2p_core`.
+- Package: `p4_core`
+- PyPI: `https://pypi.org/project/p4_core/`
+- Install: `pip install p4_core`
+- Legacy compatibility package: `p4-core-sdk` (`https://pypi.org/project/p4-core-sdk/`)
+- Note: the official package name is `p4_core`.
 
 JavaScript/TypeScript:
-- Package: `@pythonicit/pp2p-core-sdk`
-- npm: `https://www.npmjs.com/package/@pythonicit/pp2p-core-sdk`
-- Install: `npm i @pythonicit/pp2p-core-sdk`
+- Package: `@pythonicit/p4-core-sdk`
+- npm: `https://www.npmjs.com/package/@pythonicit/p4-core-sdk`
+- Install: `npm i @pythonicit/p4-core-sdk`
 
 Java:
-- Coordinates: `io.github.masterjx9:pp2p-core-sdk:0.2.0`
-- Maven Central: `https://central.sonatype.com/artifact/io.github.masterjx9/pp2p-core-sdk`
+- Coordinates: `io.github.masterjx9:p4-core-sdk:0.2.0`
+- Maven Central: `https://central.sonatype.com/artifact/io.github.masterjx9/p4-core-sdk`
 
 PHP:
-- Package: `masterjx9/pp2p-core-sdk`
-- Packagist: `https://packagist.org/packages/masterjx9/pp2p-core-sdk`
-- Install: `composer require masterjx9/pp2p-core-sdk`
+- Package: `masterjx9/p4-core-sdk`
+- Packagist: `https://packagist.org/packages/masterjx9/p4-core-sdk`
+- Install: `composer require masterjx9/p4-core-sdk`
 
 C++:
 - Wrapper lives in this repo: `bindings/cpp`
-- Uses bundled native payload under `native/pp2p_core/<platform>/`
+- Uses bundled native payload under `native/p4_core/<platform>/`
 
 ## Source Install (Secondary)
 
@@ -78,9 +78,9 @@ Use source installs only when developing/contributing to this monorepo:
 
 ## Abstract Device Requirements
 
-For any device/platform/language implementation of PP2P:
+For any device/platform/language implementation of P4:
 - A stable local identity keypair persisted on disk
-- Ability to run the PP2P native crypto core for that OS/arch
+- Ability to run the P4 native crypto core for that OS/arch
 - Network access to onion relay network for rendezvous signaling
 - Network access for WebRTC ICE (STUN, optionally TURN)
 - Local storage for state (identity, known peers, onion service metadata)
@@ -89,7 +89,7 @@ For any device/platform/language implementation of PP2P:
 
 ## Python Test (Package-First)
 
-This test uses `pip install pp2p_core` first and does not require editable/source install.
+This test uses `pip install p4_core` first and does not require editable/source install.
 
 1. Create env and install dependencies:
 
@@ -97,35 +97,35 @@ This test uses `pip install pp2p_core` first and does not require editable/sourc
 py -3 -m venv .venv
 .\.venv\Scripts\Activate.ps1
 python -m pip install --upgrade pip
-pip install pp2p_core aiortc cryptography
+pip install p4_core aiortc cryptography
 ```
 
 2. Build onion relay binary (Windows):
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File .\build_tor_subset_windows.ps1
+powershell -ExecutionPolicy Bypass -File .\build_onionrelay_windows.ps1
 ```
 
 3. Initialize two peers:
 
 ```powershell
-python pp2p.py init --state-dir .\human_test\peerA
-python pp2p.py init --state-dir .\human_test\peerB
+python p4.py init --state-dir .\human_test\peerA
+python p4.py init --state-dir .\human_test\peerB
 ```
 
 4. Start peer A (terminal 1):
 
 ```powershell
-python pp2p.py run --state-dir .\human_test\peerA --mode onion --tor-bin .\tor_win_min_src\src\app\tor.exe
+python p4.py run --state-dir .\human_test\peerA --mode onion --onionrelay-bin .\onionrelay_src\src\app\onionrelay.exe
 ```
 
 5. Start peer B (terminal 2):
 
 ```powershell
-python pp2p.py run --state-dir .\human_test\peerB --mode onion --tor-bin .\tor_win_min_src\src\app\tor.exe
+python p4.py run --state-dir .\human_test\peerB --mode onion --onionrelay-bin .\onionrelay_src\src\app\onionrelay.exe
 ```
 
-6. In each `pp2p>` prompt:
+6. In each `p4>` prompt:
 - Run `/invite` and exchange JSON
 - Add the other peer invite: `/add-json <invite-json>` or `/add-file <path>`
 - Verify with `/peers`
@@ -135,15 +135,15 @@ python pp2p.py run --state-dir .\human_test\peerB --mode onion --tor-bin .\tor_w
 ## Architecture Summary
 
 Rust core:
-- `rust/pp2p-core`: identity, peer id derivation, envelope sign/verify
-- `rust/pp2p-ffi`: C ABI
-- `include/pp2p_core.h`: ABI contract
+- `rust/p4-core`: identity, peer id derivation, envelope sign/verify
+- `rust/p4-ffi`: C ABI
+- `include/p4_core.h`: ABI contract
 
 Python runtime:
-- `pp2p.py` is a reference node/CLI and consumes `pp2p_core` package.
+- `p4.py` is a reference node/CLI and consumes `p4_core` package.
 
 Onion relay:
-- Windows subset build via `build_tor_subset_windows.ps1`
+- Windows subset build via `build_onionrelay_windows.ps1`
 - Linux/macOS build pipeline via `.github/workflows/build-onionrelay-unix.yml`
 
 ## Contributing
@@ -165,6 +165,8 @@ Onion relay:
 ## Security Notes
 
 - Onion is used for rendezvous/signaling persistence.
-- App data still runs over direct P2P channels when ICE succeeds.
+- App data still runs over direct point-to-point channels when ICE succeeds.
 - TURN is optional but recommended for higher reliability through strict NAT/firewall conditions.
-- You can override native lib path in all SDKs with `PP2P_CORE_LIB`.
+- You can override native lib path in all SDKs with `P4_CORE_LIB`.
+
+

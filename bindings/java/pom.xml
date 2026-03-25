@@ -5,12 +5,12 @@
   <modelVersion>4.0.0</modelVersion>
 
   <groupId>io.github.masterjx9</groupId>
-  <artifactId>pp2p-core-sdk</artifactId>
+  <artifactId>p4-core-sdk</artifactId>
   <version>0.2.0</version>
   <packaging>jar</packaging>
-  <name>PP2P Core SDK (Java)</name>
-  <description>Java JNA SDK for the PP2P Rust core C ABI</description>
-  <url>https://github.com/masterjx9/pp2p</url>
+  <name>P4 Core SDK (Java)</name>
+  <description>Java JNA SDK for the P4 Rust core C ABI</description>
+  <url>https://github.com/masterjx9/p4</url>
 
   <licenses>
     <license>
@@ -28,9 +28,9 @@
   </developers>
 
   <scm>
-    <connection>scm:git:https://github.com/masterjx9/pp2p.git</connection>
-    <developerConnection>scm:git:ssh://git@github.com/masterjx9/pp2p.git</developerConnection>
-    <url>https://github.com/masterjx9/pp2p</url>
+    <connection>scm:git:https://github.com/masterjx9/p4.git</connection>
+    <developerConnection>scm:git:ssh://git@github.com/masterjx9/p4.git</developerConnection>
+    <url>https://github.com/masterjx9/p4</url>
   </scm>
 
   <properties>
@@ -51,8 +51,8 @@
   <build>
     <resources>
       <resource>
-        <directory>${project.basedir}/../../native/pp2p_core</directory>
-        <targetPath>native/pp2p_core</targetPath>
+        <directory>${project.basedir}/../../native/p4_core</directory>
+        <targetPath>native/p4_core</targetPath>
         <includes>
           <include>**/*</include>
         </includes>

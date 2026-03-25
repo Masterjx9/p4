@@ -5,7 +5,8 @@ This package name is kept for compatibility only.
 ## Correct install command
 
 ```bash
-pip install pp2p_core
+pip install p4_core
 ```
 
-`pp2p-core-sdk` depends on `pp2p_core` and exists so older references do not break.
+`p4-core-sdk` depends on `p4_core` and exists so older references do not break.
+

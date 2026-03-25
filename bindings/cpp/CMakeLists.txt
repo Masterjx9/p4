@@ -1,31 +1,32 @@
 cmake_minimum_required(VERSION 3.16)
-project(pp2p_core_cpp LANGUAGES CXX)
+project(p4_core_cpp LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-add_library(pp2p_core_cpp STATIC
-  src/pp2p_core_cpp.cpp
+add_library(p4_core_cpp STATIC
+  src/p4_core_cpp.cpp
 )
 
-target_include_directories(pp2p_core_cpp PUBLIC
+target_include_directories(p4_core_cpp PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
 
-target_compile_definitions(pp2p_core_cpp PRIVATE
-  PP2P_NATIVE_ROOT="${CMAKE_CURRENT_SOURCE_DIR}/../../native/pp2p_core"
+target_compile_definitions(p4_core_cpp PRIVATE
+  P4_NATIVE_ROOT="${CMAKE_CURRENT_SOURCE_DIR}/../../native/p4_core"
 )
 
 if(UNIX AND NOT APPLE)
-  target_link_libraries(pp2p_core_cpp PRIVATE dl)
+  target_link_libraries(p4_core_cpp PRIVATE dl)
 endif()
 
-add_executable(pp2p_core_cpp_example example.cpp)
-target_link_libraries(pp2p_core_cpp_example PRIVATE pp2p_core_cpp)
+add_executable(p4_core_cpp_example example.cpp)
+target_link_libraries(p4_core_cpp_example PRIVATE p4_core_cpp)
 
-add_custom_command(TARGET pp2p_core_cpp_example POST_BUILD
-  COMMAND ${CMAKE_COMMAND} -E make_directory $<TARGET_FILE_DIR:pp2p_core_cpp_example>/native/pp2p_core
+add_custom_command(TARGET p4_core_cpp_example POST_BUILD
+  COMMAND ${CMAKE_COMMAND} -E make_directory $<TARGET_FILE_DIR:p4_core_cpp_example>/native/p4_core
   COMMAND ${CMAKE_COMMAND} -E copy_directory
-          ${CMAKE_CURRENT_SOURCE_DIR}/../../native/pp2p_core
-          $<TARGET_FILE_DIR:pp2p_core_cpp_example>/native/pp2p_core
+          ${CMAKE_CURRENT_SOURCE_DIR}/../../native/p4_core
+          $<TARGET_FILE_DIR:p4_core_cpp_example>/native/p4_core
 )
+

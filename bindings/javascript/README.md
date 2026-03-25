@@ -1,11 +1,11 @@
 # JavaScript / TypeScript SDK
 
-Node.js FFI wrapper for the PP2P Rust core.
+Node.js FFI wrapper for the P4 Rust core.
 
 ## Install
 
 ```bash
-npm i @pythonicit/pp2p-core-sdk
+npm i @pythonicit/p4-core-sdk
 ```
 
 ## Runtime requirements
@@ -17,14 +17,14 @@ npm i @pythonicit/pp2p-core-sdk
   - macOS Intel (x64)
   - macOS Apple Silicon (arm64)
 
-For unsupported targets, set `PP2P_CORE_LIB` to a compatible native library path.
+For unsupported targets, set `P4_CORE_LIB` to a compatible native library path.
 
 ## Example
 
 ```javascript
-const { Pp2pCore } = require("./bindings/javascript/pp2p_core");
+const { P4Core } = require("./bindings/javascript/p4_core");
 
-const core = new Pp2pCore();
+const core = new P4Core();
 const a = core.generateIdentity();
 const b = core.generateIdentity();
 
@@ -39,3 +39,5 @@ const env = core.signEnvelope({
 core.verifyEnvelope({ envelope: env, signerPublicKeyB64: a.public_key_b64 });
 console.log("ok");
 ```
+
+

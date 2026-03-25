@@ -1,20 +1,20 @@
 # Multi-Language SDK Bindings
 
-All SDKs call the same native ABI in [pp2p_core.h](/c:/Users/RKerrigan/Projects/pp2p/include/pp2p_core.h).
+All SDKs call the same native ABI in [p4_core.h](../include/p4_core.h).
 
 ## Native library build
 
-- Windows: `.\scripts\build_pp2p_core.ps1`
-- Linux/macOS: `./scripts/build_pp2p_core_unix.sh`
+- Windows: `.\scripts\build_p4_core.ps1`
+- Linux/macOS: `./scripts/build_p4_core_unix.sh`
 
 Output:
-- Windows: `dist/pp2p_core/windows-x64/pp2p_core.dll`
-- Linux: `dist/pp2p_core/linux-x64/libpp2p_core.so`
-- macOS: `dist/pp2p_core/macos/libpp2p_core.dylib`
+- Windows: `dist/p4_core/windows-x64/p4_core.dll`
+- Linux: `dist/p4_core/linux-x64/libp4_core.so`
+- macOS: `dist/p4_core/macos/libp4_core.dylib`
 
 ## SDK packages
 
-- Python: `bindings/python` (`pyproject.toml`, package `pp2p_core/`)
+- Python: `bindings/python` (`pyproject.toml`, package `p4_core/`)
 - JavaScript/TypeScript: `bindings/javascript` (`package.json`)
 - Java: `bindings/java` (`pom.xml`, JNA wrapper)
 - C++: `bindings/cpp` (`CMakeLists.txt`, wrapper static lib)
@@ -24,10 +24,10 @@ Maven namespace in this repo:
 - `io.github.masterjx9`
 
 Install commands:
-- Python: `pip install pp2p_core`
-- JS/TS: `npm i @pythonicit/pp2p-core-sdk`
-- Java (Maven): `io.github.masterjx9:pp2p-core-sdk:0.2.0`
-- PHP (Composer): `composer require masterjx9/pp2p-core-sdk`
+- Python: `pip install p4_core`
+- JS/TS: `npm i @pythonicit/p4-core-sdk`
+- Java (Maven): `io.github.masterjx9:p4-core-sdk:0.2.0`
+- PHP (Composer): `composer require masterjx9/p4-core-sdk`
 
 Runtime requirements (all SDKs):
 - Python/JS/Java/PHP packages bundle native binaries for:
@@ -35,7 +35,8 @@ Runtime requirements (all SDKs):
   - Linux x64
   - macOS Intel (x64)
   - macOS Apple Silicon (arm64)
-- C++ auto-resolves bundled native binaries from `native/pp2p_core/<platform>/`.
-- Any SDK can be overridden with `PP2P_CORE_LIB`.
+- C++ auto-resolves bundled native binaries from `native/p4_core/<platform>/`.
+- Any SDK can be overridden with `P4_CORE_LIB`.
 
 Each binding README has language-specific usage examples.
+

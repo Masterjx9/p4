@@ -1,3 +1,4 @@
-# Runtime requirements for pp2p.py CLI (not required for the standalone SDK package).
+﻿# Runtime requirements for p4.py CLI (not required for the standalone SDK package).
 aiortc==1.13.0
 cryptography==45.0.4
+

@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """
-Onion-mode smoke test for PP2P protocol.
+Onion-mode smoke test for P4 protocol.
 
 This validates:
-1) two local nodes can discover each other via Tor onion rendezvous,
+1) two local nodes can discover each other via OnionRelay onion rendezvous,
 2) they can exchange chat,
 3) forced drop auto-reconnects.
 """
@@ -17,7 +17,7 @@ import shutil
 import time
 from pathlib import Path
 
-from pp2p import Contact, PP2PNode, Rendezvous, RuntimeConfig, save_contacts, state_identity
+from p4 import Contact, P4Node, Rendezvous, RuntimeConfig, save_contacts, state_identity
 
 
 async def wait_until(pred, timeout: float, label: str) -> None:
@@ -33,7 +33,7 @@ def make_cfg(
     signal_port: int,
     socks_port: int,
     control_port: int,
-    tor_bin: str | None,
+    onionrelay_bin: str | None,
 ) -> RuntimeConfig:
     return RuntimeConfig(
         state_dir=state_dir,
@@ -48,15 +48,15 @@ def make_cfg(
         turn_password=None,
         turn_secret=None,
         turn_ttl_seconds=3600,
-        turn_user="pp2p",
-        tor_bin=tor_bin,
-        tor_socks_port=socks_port,
-        tor_control_port=control_port,
+        turn_user="p4",
+        onionrelay_bin=onionrelay_bin,
+        onionrelay_socks_port=socks_port,
+        onionrelay_control_port=control_port,
         no_stdin=True,
     )
 
 
-async def run_test(base_dir: Path, tor_bin: str | None) -> None:
+async def run_test(base_dir: Path, onionrelay_bin: str | None) -> None:
     if base_dir.exists():
         shutil.rmtree(base_dir)
     (base_dir / "alice").mkdir(parents=True, exist_ok=True)
@@ -68,8 +68,8 @@ async def run_test(base_dir: Path, tor_bin: str | None) -> None:
     alice_id = state_identity(alice_state)
     bob_id = state_identity(bob_state)
 
-    alice = PP2PNode(make_cfg(alice_state, signal_port=18201, socks_port=19250, control_port=19251, tor_bin=tor_bin))
-    bob = PP2PNode(make_cfg(bob_state, signal_port=18202, socks_port=19350, control_port=19351, tor_bin=tor_bin))
+    alice = P4Node(make_cfg(alice_state, signal_port=18201, socks_port=19250, control_port=19251, onionrelay_bin=onionrelay_bin))
+    bob = P4Node(make_cfg(bob_state, signal_port=18202, socks_port=19350, control_port=19351, onionrelay_bin=onionrelay_bin))
 
     alice_task = asyncio.create_task(alice.run(), name="alice-onion")
     bob_task = asyncio.create_task(bob.run(), name="bob-onion")
@@ -142,16 +142,19 @@ async def run_test(base_dir: Path, tor_bin: str | None) -> None:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Run onion-mode PP2P smoke test")
+    parser = argparse.ArgumentParser(description="Run onion-mode P4 smoke test")
     parser.add_argument("--base-dir", default="onion_smoketest_state")
-    parser.add_argument("--tor-bin", default=None)
+    parser.add_argument("--onionrelay-bin", default=None)
     args = parser.parse_args()
 
     base = Path(args.base_dir).resolve()
     print(json.dumps({"base_dir": str(base)}, indent=2))
-    asyncio.run(run_test(base, tor_bin=args.tor_bin))
+    asyncio.run(run_test(base, onionrelay_bin=args.onionrelay_bin))
     return 0
 
 
 if __name__ == "__main__":
     raise SystemExit(main())
+
+
+

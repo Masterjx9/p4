@@ -2,7 +2,7 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-SRC_DIR="${ROOT_DIR}/tor_win_min_src"
+SRC_DIR="${ROOT_DIR}/onionrelay_src"
 OUT_DIR="${1:-${ROOT_DIR}/dist}"
 OUT_NAME="${2:-onionrelay}"
 
@@ -50,11 +50,23 @@ rm -f config.log config.status || true
 
 make distclean >/dev/null 2>&1 || true
 ./configure "${CONFIG_FLAGS[@]}"
-make -j"${JOBS}" src/app/tor libtor.a
+make -j"${JOBS}"
+
+SRC_BIN="$(find "${SRC_DIR}/src/app" -maxdepth 1 -type f -perm -111 | head -n1)"
+if [[ -z "${SRC_BIN}" ]]; then
+  echo "No executable found under ${SRC_DIR}/src/app after build" >&2
+  exit 1
+fi
+cp -f "${SRC_BIN}" "${SRC_DIR}/src/app/onionrelay"
+
+SRC_LIB="$(find "${SRC_DIR}" -maxdepth 1 -type f -name 'lib*.a' | head -n1)"
+if [[ -n "${SRC_LIB}" ]]; then
+  cp -f "${SRC_LIB}" "${SRC_DIR}/libonionrelay.a"
+fi
 popd >/dev/null
 
 mkdir -p "${OUT_DIR}"
-cp -f "${SRC_DIR}/src/app/tor" "${OUT_DIR}/${OUT_NAME}"
+cp -f "${SRC_DIR}/src/app/onionrelay" "${OUT_DIR}/${OUT_NAME}"
 chmod +x "${OUT_DIR}/${OUT_NAME}"
 
 echo "Built ${OUT_DIR}/${OUT_NAME}"

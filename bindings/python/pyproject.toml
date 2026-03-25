@@ -3,12 +3,12 @@ requires = ["setuptools>=68", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "pp2p_core"
+name = "p4_core"
 version = "0.2.2"
-description = "Python ctypes SDK for the PP2P Rust core"
+description = "Python ctypes SDK for the P4 Rust core"
 readme = "README.md"
 requires-python = ">=3.9"
-authors = [{ name = "PP2P" }]
+authors = [{ name = "P4" }]
 license = "MIT"
 classifiers = [
   "Programming Language :: Python :: 3",
@@ -18,8 +18,10 @@ classifiers = [
 
 [tool.setuptools]
 include-package-data = true
-packages = ["pp2p_core", "pp2p_core.native"]
+packages = ["p4_core", "p4_core.native"]
 
 [tool.setuptools.package-data]
-pp2p_core = ["native/*", "native/*/*"]
-"pp2p_core.native" = ["*", "*/*"]
+p4_core = ["native/*", "native/*/*"]
+"p4_core.native" = ["*", "*/*"]
+
+

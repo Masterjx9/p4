@@ -1,6 +1,6 @@
 # OnionRelay Build Pipeline
 
-This repository now includes a cross-platform pipeline that builds a slimmed Tor-based
+This repository now includes a cross-platform pipeline that builds a slimmed onion relay
 binary named `onionrelay` for:
 
 1. Linux x86_64
@@ -19,7 +19,7 @@ Trigger:
 2. Pushes to `main` touching:
    - workflow file
    - `scripts/build_onionrelay_unix.sh`
-   - `tor_win_min_src/**`
+   - `onionrelay_src/**`
 
 Output artifacts:
 

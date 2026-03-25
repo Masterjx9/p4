@@ -75,36 +75,36 @@ jobs:
       - name: Build native core (Windows)
         if: runner.os == 'Windows'
         shell: powershell
-        run: .\scripts\build_pp2p_core.ps1
+        run: .\scripts\build_p4_core.ps1
 
       - name: Build native core (Linux/macOS)
         if: runner.os == 'Linux'
         shell: bash
         run: |
-          chmod +x scripts/build_pp2p_core_unix.sh
-          ./scripts/build_pp2p_core_unix.sh
+          chmod +x scripts/build_p4_core_unix.sh
+          ./scripts/build_p4_core_unix.sh
 
       - name: Build native core (macOS universal)
         if: runner.os == 'macOS'
         shell: bash
         run: |
           rustup target add aarch64-apple-darwin x86_64-apple-darwin
-          cargo build --manifest-path rust/Cargo.toml --release -p pp2p-ffi --target aarch64-apple-darwin
-          cargo build --manifest-path rust/Cargo.toml --release -p pp2p-ffi --target x86_64-apple-darwin
+          cargo build --manifest-path rust/Cargo.toml --release -p p4-ffi --target aarch64-apple-darwin
+          cargo build --manifest-path rust/Cargo.toml --release -p p4-ffi --target x86_64-apple-darwin
 
       - name: Stage native artifact (Windows)
         if: runner.os == 'Windows'
         shell: powershell
         run: |
           New-Item -ItemType Directory -Force -Path out\win32-x64 | Out-Null
-          Copy-Item dist\pp2p_core\windows-x64\pp2p_core.dll out\win32-x64\pp2p_core.dll -Force
+          Copy-Item dist\p4_core\windows-x64\p4_core.dll out\win32-x64\p4_core.dll -Force
 
       - name: Stage native artifact (Linux)
         if: runner.os == 'Linux'
         shell: bash
         run: |
           mkdir -p out/linux-x64
-          cp -f dist/pp2p_core/linux-x64/libpp2p_core.so out/linux-x64/libpp2p_core.so
+          cp -f dist/p4_core/linux-x64/libp4_core.so out/linux-x64/libp4_core.so
 
       - name: Stage native artifact (macOS universal)
         if: runner.os == 'macOS'
@@ -112,8 +112,8 @@ jobs:
         run: |
           mkdir -p out/darwin-x64
           mkdir -p out/darwin-arm64
-          cp -f rust/target/x86_64-apple-darwin/release/libpp2p_ffi.dylib out/darwin-x64/libpp2p_core.dylib
-          cp -f rust/target/aarch64-apple-darwin/release/libpp2p_ffi.dylib out/darwin-arm64/libpp2p_core.dylib
+          cp -f rust/target/x86_64-apple-darwin/release/libp4_ffi.dylib out/darwin-x64/libp4_core.dylib
+          cp -f rust/target/aarch64-apple-darwin/release/libp4_ffi.dylib out/darwin-arm64/libp4_core.dylib
 
       - name: Upload native artifact
         uses: actions/upload-artifact@v4
@@ -169,9 +169,9 @@ jobs:
           mkdir -p bindings/javascript/native/darwin-x64
           mkdir -p bindings/javascript/native/darwin-arm64
 
-          WIN_SRC="$(find tmp_native/win -type f -name 'pp2p_core.dll' | head -n1)"
-          LIN_SRC="$(find tmp_native/linux -type f -name 'libpp2p_core.so' | head -n1)"
-          DARWIN_SRCS=($(find tmp_native/darwin -type f -name 'libpp2p_core.dylib'))
+          WIN_SRC="$(find tmp_native/win -type f -name 'p4_core.dll' | head -n1)"
+          LIN_SRC="$(find tmp_native/linux -type f -name 'libp4_core.so' | head -n1)"
+          DARWIN_SRCS=($(find tmp_native/darwin -type f -name 'libp4_core.dylib'))
           DARWIN_ARM=""
           DARWIN_X64=""
           for p in "${DARWIN_SRCS[@]}"; do
@@ -191,10 +191,10 @@ jobs:
             exit 1
           fi
 
-          cp -f "${WIN_SRC}" bindings/javascript/native/win32-x64/pp2p_core.dll
-          cp -f "${LIN_SRC}" bindings/javascript/native/linux-x64/libpp2p_core.so
-          cp -f "${DARWIN_ARM}" bindings/javascript/native/darwin-arm64/libpp2p_core.dylib
-          cp -f "${DARWIN_X64}" bindings/javascript/native/darwin-x64/libpp2p_core.dylib
+          cp -f "${WIN_SRC}" bindings/javascript/native/win32-x64/p4_core.dll
+          cp -f "${LIN_SRC}" bindings/javascript/native/linux-x64/libp4_core.so
+          cp -f "${DARWIN_ARM}" bindings/javascript/native/darwin-arm64/libp4_core.dylib
+          cp -f "${DARWIN_X64}" bindings/javascript/native/darwin-x64/libp4_core.dylib
 
       - name: Verify package tarball
         run: npm pack --dry-run
@@ -225,3 +225,4 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - run: echo "Version already exists on npm; skipping publish."
+

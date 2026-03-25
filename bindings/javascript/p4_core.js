@@ -1,5 +1,5 @@
 /*
- * Node.js bridge for the Rust PP2P C ABI.
+ * Node.js bridge for the Rust P4 C ABI.
  */
 
 const ffi = require("ffi-napi");
@@ -8,19 +8,19 @@ const fs = require("fs");
 const path = require("path");
 
 function defaultLibPath() {
-  if (process.env.PP2P_CORE_LIB) {
-    return process.env.PP2P_CORE_LIB;
+  if (process.env.P4_CORE_LIB) {
+    return process.env.P4_CORE_LIB;
   }
 
   let bundled = null;
   if (process.platform === "win32" && process.arch === "x64") {
-    bundled = path.resolve(__dirname, "native", "win32-x64", "pp2p_core.dll");
+    bundled = path.resolve(__dirname, "native", "win32-x64", "p4_core.dll");
   } else if (process.platform === "darwin" && process.arch === "x64") {
-    bundled = path.resolve(__dirname, "native", "darwin-x64", "libpp2p_core.dylib");
+    bundled = path.resolve(__dirname, "native", "darwin-x64", "libp4_core.dylib");
   } else if (process.platform === "darwin" && process.arch === "arm64") {
-    bundled = path.resolve(__dirname, "native", "darwin-arm64", "libpp2p_core.dylib");
+    bundled = path.resolve(__dirname, "native", "darwin-arm64", "libp4_core.dylib");
   } else if (process.platform === "linux" && process.arch === "x64") {
-    bundled = path.resolve(__dirname, "native", "linux-x64", "libpp2p_core.so");
+    bundled = path.resolve(__dirname, "native", "linux-x64", "libp4_core.so");
   }
 
   if (bundled && fs.existsSync(bundled)) {
@@ -28,9 +28,9 @@ function defaultLibPath() {
   }
 
   let rel = null;
-  if (process.platform === "win32") rel = "dist/pp2p_core/windows-x64/pp2p_core.dll";
-  else if (process.platform === "darwin") rel = "dist/pp2p_core/macos/libpp2p_core.dylib";
-  else rel = "dist/pp2p_core/linux-x64/libpp2p_core.so";
+  if (process.platform === "win32") rel = "dist/p4_core/windows-x64/p4_core.dll";
+  else if (process.platform === "darwin") rel = "dist/p4_core/macos/libp4_core.dylib";
+  else rel = "dist/p4_core/linux-x64/libp4_core.so";
 
   const candidates = [
     path.resolve(process.cwd(), rel),
@@ -42,20 +42,20 @@ function defaultLibPath() {
     }
   }
   throw new Error(
-    `PP2P native library not found for ${process.platform}/${process.arch}. ` +
-      `Set PP2P_CORE_LIB or install a package build that includes native binaries.`
+    `P4 native library not found for ${process.platform}/${process.arch}. ` +
+      `Set P4_CORE_LIB or install a package build that includes native binaries.`
   );
 }
 
-class Pp2pCore {
+class P4Core {
   constructor(libPath = defaultLibPath()) {
     this.lib = ffi.Library(libPath, {
-      pp2p_generate_identity_json: ["pointer", []],
-      pp2p_peer_id_from_public_key_b64: ["pointer", ["string"]],
-      pp2p_sign_envelope_json: ["pointer", ["string", "string", "string", "string", "uint64", "string"]],
-      pp2p_verify_envelope_json: ["uchar", ["string", "string", "uint64", "uint64"]],
-      pp2p_last_error_message: ["pointer", []],
-      pp2p_free_string: ["void", ["pointer"]],
+      p4_generate_identity_json: ["pointer", []],
+      p4_peer_id_from_public_key_b64: ["pointer", ["string"]],
+      p4_sign_envelope_json: ["pointer", ["string", "string", "string", "string", "uint64", "string"]],
+      p4_verify_envelope_json: ["uchar", ["string", "string", "uint64", "uint64"]],
+      p4_last_error_message: ["pointer", []],
+      p4_free_string: ["void", ["pointer"]],
     });
   }
 
@@ -66,25 +66,25 @@ class Pp2pCore {
     try {
       return ref.readCString(ptr, 0);
     } finally {
-      this.lib.pp2p_free_string(ptr);
+      this.lib.p4_free_string(ptr);
     }
   }
 
   lastError() {
-    return this._takeString(this.lib.pp2p_last_error_message());
+    return this._takeString(this.lib.p4_last_error_message());
   }
 
   generateIdentity() {
-    return JSON.parse(this._takeString(this.lib.pp2p_generate_identity_json()));
+    return JSON.parse(this._takeString(this.lib.p4_generate_identity_json()));
   }
 
   peerIdFromPublicKeyB64(publicKeyB64) {
-    return this._takeString(this.lib.pp2p_peer_id_from_public_key_b64(publicKeyB64));
+    return this._takeString(this.lib.p4_peer_id_from_public_key_b64(publicKeyB64));
   }
 
   signEnvelope({ privateKeyB64, senderPeerId, recipientPeerId, payload, timestampMs, nonce }) {
     const ts = typeof timestampMs === "number" ? timestampMs : Date.now();
-    const ptr = this.lib.pp2p_sign_envelope_json(
+    const ptr = this.lib.p4_sign_envelope_json(
       privateKeyB64,
       senderPeerId,
       recipientPeerId,
@@ -97,7 +97,7 @@ class Pp2pCore {
 
   verifyEnvelope({ envelope, signerPublicKeyB64, maxSkewMs = 60000, nowMs }) {
     const now = typeof nowMs === "number" ? nowMs : Date.now();
-    const ok = this.lib.pp2p_verify_envelope_json(
+    const ok = this.lib.p4_verify_envelope_json(
       JSON.stringify(envelope),
       signerPublicKeyB64,
       now,
@@ -110,4 +110,6 @@ class Pp2pCore {
   }
 }
 
-module.exports = { Pp2pCore };
+module.exports = { P4Core };
+
+

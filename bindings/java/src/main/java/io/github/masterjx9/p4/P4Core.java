@@ -1,4 +1,4 @@
-package io.github.masterjx9.pp2p;
+package io.github.masterjx9.p4;
 
 import com.sun.jna.Library;
 import com.sun.jna.Native;
@@ -12,13 +12,13 @@ import java.nio.file.StandardCopyOption;
 import java.util.Locale;
 import java.util.Objects;
 
-public final class Pp2pCore {
-    private static final String ENV_LIBRARY_PATH = "PP2P_CORE_LIB";
+public final class P4Core {
+    private static final String ENV_LIBRARY_PATH = "P4_CORE_LIB";
 
     private interface NativeApi extends Library {
-        Pointer pp2p_generate_identity_json();
-        Pointer pp2p_peer_id_from_public_key_b64(String publicKeyB64);
-        Pointer pp2p_sign_envelope_json(
+        Pointer p4_generate_identity_json();
+        Pointer p4_peer_id_from_public_key_b64(String publicKeyB64);
+        Pointer p4_sign_envelope_json(
             String privateKeyB64,
             String senderPeerId,
             String recipientPeerId,
@@ -26,23 +26,23 @@ public final class Pp2pCore {
             long timestampMs,
             String nonce
         );
-        byte pp2p_verify_envelope_json(
+        byte p4_verify_envelope_json(
             String envelopeJson,
             String signerPublicKeyB64,
             long nowMs,
             long maxSkewMs
         );
-        Pointer pp2p_last_error_message();
-        void pp2p_free_string(Pointer ptr);
+        Pointer p4_last_error_message();
+        void p4_free_string(Pointer ptr);
     }
 
     private final NativeApi api;
 
-    public Pp2pCore() {
+    public P4Core() {
         this(resolveDefaultLibraryPath());
     }
 
-    public Pp2pCore(String libraryPath) {
+    public P4Core(String libraryPath) {
         Objects.requireNonNull(libraryPath, "libraryPath");
         this.api = Native.load(libraryPath, NativeApi.class);
     }
@@ -55,15 +55,15 @@ public final class Pp2pCore {
     }
 
     public String lastError() {
-        return readOwnedString(api.pp2p_last_error_message(), "unknown error");
+        return readOwnedString(api.p4_last_error_message(), "unknown error");
     }
 
     public String generateIdentityJson() {
-        return takeString(api.pp2p_generate_identity_json());
+        return takeString(api.p4_generate_identity_json());
     }
 
     public String peerIdFromPublicKeyB64(String publicKeyB64) {
-        return takeString(api.pp2p_peer_id_from_public_key_b64(publicKeyB64));
+        return takeString(api.p4_peer_id_from_public_key_b64(publicKeyB64));
     }
 
     public String signEnvelopeJson(
@@ -75,7 +75,7 @@ public final class Pp2pCore {
         String nonce
     ) {
         return takeString(
-            api.pp2p_sign_envelope_json(
+            api.p4_sign_envelope_json(
                 privateKeyB64,
                 senderPeerId,
                 recipientPeerId,
@@ -92,7 +92,7 @@ public final class Pp2pCore {
         long nowMs,
         long maxSkewMs
     ) {
-        byte ok = api.pp2p_verify_envelope_json(envelopeJson, signerPublicKeyB64, nowMs, maxSkewMs);
+        byte ok = api.p4_verify_envelope_json(envelopeJson, signerPublicKeyB64, nowMs, maxSkewMs);
         if (ok == 1) {
             return true;
         }
@@ -106,7 +106,7 @@ public final class Pp2pCore {
         try {
             return ptr.getString(0, "UTF-8");
         } finally {
-            api.pp2p_free_string(ptr);
+            api.p4_free_string(ptr);
         }
     }
 
@@ -117,7 +117,7 @@ public final class Pp2pCore {
         }
 
         PlatformTarget target = PlatformTarget.detect();
-        String resourcePath = "/native/pp2p_core/" + target.nativeDir + "/" + target.fileName;
+        String resourcePath = "/native/p4_core/" + target.nativeDir + "/" + target.fileName;
         String bundledPath = extractBundledLibrary(resourcePath, target.fileName);
         if (bundledPath != null) {
             return bundledPath;
@@ -126,7 +126,7 @@ public final class Pp2pCore {
         Path repoNative = Path.of(
             System.getProperty("user.dir"),
             "native",
-            "pp2p_core",
+            "p4_core",
             target.nativeDir,
             target.fileName
         );
@@ -135,17 +135,17 @@ public final class Pp2pCore {
         }
 
         throw new RuntimeException(
-            "PP2P native library not found for " + target.osLabel + "/" + target.archLabel +
-            ". Set PP2P_CORE_LIB or use a build that includes bundled native binaries."
+            "P⁴ native library not found for " + target.osLabel + "/" + target.archLabel +
+            ". Set P4_CORE_LIB or use a build that includes bundled native binaries."
         );
     }
 
     private static String extractBundledLibrary(String resourcePath, String fileName) {
-        try (InputStream input = Pp2pCore.class.getResourceAsStream(resourcePath)) {
+        try (InputStream input = P4Core.class.getResourceAsStream(resourcePath)) {
             if (input == null) {
                 return null;
             }
-            Path tempDir = Files.createTempDirectory("pp2p-core-jna-");
+            Path tempDir = Files.createTempDirectory("p4-core-jna-");
             Path tempLib = tempDir.resolve(fileName);
             Files.copy(input, tempLib, StandardCopyOption.REPLACE_EXISTING);
             tempLib.toFile().deleteOnExit();
@@ -174,21 +174,23 @@ public final class Pp2pCore {
             String arch = System.getProperty("os.arch", "").toLowerCase(Locale.ROOT);
             if (os.contains("win")) {
                 if (arch.contains("64")) {
-                    return new PlatformTarget("windows", arch, "win32-x64", "pp2p_core.dll");
+                    return new PlatformTarget("windows", arch, "win32-x64", "p4_core.dll");
                 }
             } else if (os.contains("mac") || os.contains("darwin")) {
                 if (arch.contains("aarch64") || arch.contains("arm64")) {
-                    return new PlatformTarget("darwin", arch, "darwin-arm64", "libpp2p_core.dylib");
+                    return new PlatformTarget("darwin", arch, "darwin-arm64", "libp4_core.dylib");
                 }
                 if (arch.contains("x86_64") || arch.contains("amd64")) {
-                    return new PlatformTarget("darwin", arch, "darwin-x64", "libpp2p_core.dylib");
+                    return new PlatformTarget("darwin", arch, "darwin-x64", "libp4_core.dylib");
                 }
             } else if (os.contains("linux")) {
                 if (arch.contains("x86_64") || arch.contains("amd64")) {
-                    return new PlatformTarget("linux", arch, "linux-x64", "libpp2p_core.so");
+                    return new PlatformTarget("linux", arch, "linux-x64", "libp4_core.so");
                 }
             }
             throw new RuntimeException("Unsupported platform: os=" + os + ", arch=" + arch);
         }
     }
 }
+
+

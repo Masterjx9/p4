@@ -1,12 +1,12 @@
 # PHP SDK (FFI)
 
 Composer package metadata and wrapper class:
-- [Pp2pCore.php](/c:/Users/RKerrigan/Projects/pp2p/bindings/php/src/Pp2pCore.php)
+- [P4Core.php](src/P4Core.php)
 
 ## Install
 
 ```bash
-composer require masterjx9/pp2p-core-sdk
+composer require masterjx9/p4-core-sdk
 ```
 
 ## Runtime requirements
@@ -26,4 +26,5 @@ php bindings/php/example.php
 ```
 
 Optional override:
-- set `PP2P_CORE_LIB` to an absolute path to your own native library.
+- set `P4_CORE_LIB` to an absolute path to your own native library.
+

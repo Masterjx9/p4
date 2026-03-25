@@ -1,4 +1,4 @@
-#include "pp2p_core_cpp.hpp"
+#include "p4_core_cpp.hpp"
 
 #include <cstdlib>
 #include <filesystem>
@@ -18,13 +18,13 @@
 #endif
 #endif
 
-namespace pp2p {
+namespace p4 {
 namespace {
 
-using fn_pp2p_generate_identity_json = char *(*)();
-using fn_pp2p_peer_id_from_public_key_b64 = char *(*)(const char *);
-using fn_pp2p_last_error_message = char *(*)();
-using fn_pp2p_free_string = void (*)(char *);
+using fn_p4_generate_identity_json = char *(*)();
+using fn_p4_peer_id_from_public_key_b64 = char *(*)(const char *);
+using fn_p4_last_error_message = char *(*)();
+using fn_p4_free_string = void (*)(char *);
 
 std::mutex g_path_mutex;
 std::string g_explicit_library_path;
@@ -43,11 +43,11 @@ std::string platform_dir() {
 
 std::string library_name() {
 #if defined(_WIN32)
-  return "pp2p_core.dll";
+  return "p4_core.dll";
 #elif defined(__APPLE__)
-  return "libpp2p_core.dylib";
+  return "libp4_core.dylib";
 #else
-  return "libpp2p_core.so";
+  return "libp4_core.so";
 #endif
 }
 
@@ -91,19 +91,19 @@ std::string resolve_default_library_path() {
     }
   }
 
-  const char *env_path = std::getenv("PP2P_CORE_LIB");
+  const char *env_path = std::getenv("P4_CORE_LIB");
   if (env_path != nullptr && env_path[0] != '\0') {
     return std::string(env_path);
   }
 
   const auto rel_native_path =
-      std::filesystem::path("native") / "pp2p_core" / platform_dir() / library_name();
+      std::filesystem::path("native") / "p4_core" / platform_dir() / library_name();
 
   std::vector<std::filesystem::path> candidates;
   candidates.push_back(std::filesystem::current_path() / rel_native_path);
 
-#ifdef PP2P_NATIVE_ROOT
-  candidates.push_back(std::filesystem::path(PP2P_NATIVE_ROOT) / platform_dir() / library_name());
+#ifdef P4_NATIVE_ROOT
+  candidates.push_back(std::filesystem::path(P4_NATIVE_ROOT) / platform_dir() / library_name());
 #endif
 
   try {
@@ -119,8 +119,8 @@ std::string resolve_default_library_path() {
   }
 
   throw std::runtime_error(
-      "PP2P native library not found. Set PP2P_CORE_LIB or place native binaries under "
-      "native/pp2p_core/<platform>/");
+      "P4 native library not found. Set P4_CORE_LIB or place native binaries under "
+      "native/p4_core/<platform>/");
 }
 
 class NativeApi {
@@ -132,19 +132,19 @@ class NativeApi {
     if (handle_ == nullptr) {
       throw std::runtime_error("failed to load native library: " + lib_path);
     }
-    load_symbol(pp2p_generate_identity_json, "pp2p_generate_identity_json");
-    load_symbol(pp2p_peer_id_from_public_key_b64, "pp2p_peer_id_from_public_key_b64");
-    load_symbol(pp2p_last_error_message, "pp2p_last_error_message");
-    load_symbol(pp2p_free_string, "pp2p_free_string");
+    load_symbol(p4_generate_identity_json, "p4_generate_identity_json");
+    load_symbol(p4_peer_id_from_public_key_b64, "p4_peer_id_from_public_key_b64");
+    load_symbol(p4_last_error_message, "p4_last_error_message");
+    load_symbol(p4_free_string, "p4_free_string");
 #else
     handle_ = dlopen(lib_path.c_str(), RTLD_NOW);
     if (handle_ == nullptr) {
       throw std::runtime_error(std::string("failed to load native library: ") + dlerror());
     }
-    load_symbol(pp2p_generate_identity_json, "pp2p_generate_identity_json");
-    load_symbol(pp2p_peer_id_from_public_key_b64, "pp2p_peer_id_from_public_key_b64");
-    load_symbol(pp2p_last_error_message, "pp2p_last_error_message");
-    load_symbol(pp2p_free_string, "pp2p_free_string");
+    load_symbol(p4_generate_identity_json, "p4_generate_identity_json");
+    load_symbol(p4_peer_id_from_public_key_b64, "p4_peer_id_from_public_key_b64");
+    load_symbol(p4_last_error_message, "p4_last_error_message");
+    load_symbol(p4_free_string, "p4_free_string");
 #endif
   }
 
@@ -163,10 +163,10 @@ class NativeApi {
   NativeApi(const NativeApi &) = delete;
   NativeApi &operator=(const NativeApi &) = delete;
 
-  fn_pp2p_generate_identity_json pp2p_generate_identity_json = nullptr;
-  fn_pp2p_peer_id_from_public_key_b64 pp2p_peer_id_from_public_key_b64 = nullptr;
-  fn_pp2p_last_error_message pp2p_last_error_message = nullptr;
-  fn_pp2p_free_string pp2p_free_string = nullptr;
+  fn_p4_generate_identity_json p4_generate_identity_json = nullptr;
+  fn_p4_peer_id_from_public_key_b64 p4_peer_id_from_public_key_b64 = nullptr;
+  fn_p4_last_error_message p4_last_error_message = nullptr;
+  fn_p4_free_string p4_free_string = nullptr;
 
  private:
   void *handle_ = nullptr;
@@ -176,13 +176,13 @@ class NativeApi {
 #if defined(_WIN32)
     FARPROC sym = GetProcAddress(static_cast<HMODULE>(handle_), name);
     if (sym == nullptr) {
-      throw std::runtime_error(std::string("missing symbol in PP2P core: ") + name);
+      throw std::runtime_error(std::string("missing symbol in P4 core: ") + name);
     }
     out = reinterpret_cast<T>(sym);
 #else
     void *sym = dlsym(handle_, name);
     if (sym == nullptr) {
-      throw std::runtime_error(std::string("missing symbol in PP2P core: ") + name);
+      throw std::runtime_error(std::string("missing symbol in P4 core: ") + name);
     }
     out = reinterpret_cast<T>(sym);
 #endif
@@ -195,12 +195,12 @@ NativeApi &api() {
 }
 
 std::string last_error() {
-  char *err = api().pp2p_last_error_message();
+  char *err = api().p4_last_error_message();
   if (err == nullptr) {
     return "unknown error";
   }
   std::string message(err);
-  api().pp2p_free_string(err);
+  api().p4_free_string(err);
   return message;
 }
 
@@ -209,7 +209,7 @@ std::string take_string(char *ptr) {
     throw std::runtime_error(last_error());
   }
   std::string value(ptr);
-  api().pp2p_free_string(ptr);
+  api().p4_free_string(ptr);
   return value;
 }
 
@@ -222,10 +222,12 @@ void set_library_path(const std::string &path) {
 
 std::string resolve_library_path() { return resolve_default_library_path(); }
 
-std::string generate_identity_json() { return take_string(api().pp2p_generate_identity_json()); }
+std::string generate_identity_json() { return take_string(api().p4_generate_identity_json()); }
 
 std::string peer_id_from_public_key_b64(const std::string &public_key_b64) {
-  return take_string(api().pp2p_peer_id_from_public_key_b64(public_key_b64.c_str()));
+  return take_string(api().p4_peer_id_from_public_key_b64(public_key_b64.c_str()));
 }
 
-}  // namespace pp2p
+}  // namespace p4
+
+

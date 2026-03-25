@@ -20,7 +20,7 @@ export interface VerifyEnvelopeInput {
   nowMs?: number;
 }
 
-export class Pp2pCore {
+export class P4Core {
   constructor(libPath?: string);
   lastError(): string;
   generateIdentity(): Identity;
@@ -28,3 +28,4 @@ export class Pp2pCore {
   signEnvelope(input: SignEnvelopeInput): Record<string, unknown>;
   verifyEnvelope(input: VerifyEnvelopeInput): boolean;
 }
+

@@ -1,4 +1,4 @@
-name: Build PP2P Core
+name: Build P4 Core
 
 on:
   workflow_dispatch:
@@ -6,11 +6,11 @@ on:
     branches:
       - main
     paths:
-      - ".github/workflows/build-pp2p-core.yml"
+      - ".github/workflows/build-p4-core.yml"
       - "rust/**"
-      - "include/pp2p_core.h"
-      - "scripts/build_pp2p_core.ps1"
-      - "scripts/build_pp2p_core_unix.sh"
+      - "include/p4_core.h"
+      - "scripts/build_p4_core.ps1"
+      - "scripts/build_p4_core_unix.sh"
 
 jobs:
   build:
@@ -19,13 +19,13 @@ jobs:
       matrix:
         include:
           - os: windows-2022
-            artifact: pp2p-core-windows-x64
+            artifact: p4-core-windows-x64
           - os: ubuntu-22.04
-            artifact: pp2p-core-linux-x64
+            artifact: p4-core-linux-x64
           - os: macos-13
-            artifact: pp2p-core-macos-intel
+            artifact: p4-core-macos-intel
           - os: macos-14
-            artifact: pp2p-core-macos-apple-silicon
+            artifact: p4-core-macos-apple-silicon
 
     runs-on: ${{ matrix.os }}
 
@@ -36,25 +36,25 @@ jobs:
       - name: Build core (Windows)
         if: runner.os == 'Windows'
         shell: powershell
-        run: .\scripts\build_pp2p_core.ps1
+        run: .\scripts\build_p4_core.ps1
 
       - name: Build core (Linux/macOS)
         if: runner.os != 'Windows'
         shell: bash
         run: |
-          chmod +x scripts/build_pp2p_core_unix.sh
-          ./scripts/build_pp2p_core_unix.sh
+          chmod +x scripts/build_p4_core_unix.sh
+          ./scripts/build_p4_core_unix.sh
 
       - name: Package artifact
         shell: bash
         run: |
           mkdir -p release
           if [ "${{ runner.os }}" = "Windows" ]; then
-            cp -f dist/pp2p_core/windows-x64/* release/
+            cp -f dist/p4_core/windows-x64/* release/
           elif [ "${{ runner.os }}" = "macOS" ]; then
-            cp -f dist/pp2p_core/macos/* release/
+            cp -f dist/p4_core/macos/* release/
           else
-            cp -f dist/pp2p_core/linux-x64/* release/
+            cp -f dist/p4_core/linux-x64/* release/
           fi
           tar -czf "${{ matrix.artifact }}.tar.gz" -C release .
 
@@ -63,3 +63,5 @@ jobs:
         with:
           name: ${{ matrix.artifact }}
           path: ${{ matrix.artifact }}.tar.gz
+
+

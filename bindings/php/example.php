@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-require_once __DIR__ . '/src/Pp2pCore.php';
+require_once __DIR__ . '/src/P4Core.php';
 
-use Pp2p\Core\Pp2pCore;
+use P4\Core\P4Core;
 
-$core = new Pp2pCore();
+$core = new P4Core();
 echo $core->generateIdentityJson() . PHP_EOL;

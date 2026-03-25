@@ -1,14 +1,14 @@
-﻿#!/usr/bin/env python3
+#!/usr/bin/env python3
 """
-Persistent Peer-to-Peer (PP2P) node runtime.
+Persistent Point-to-Point (P4) node runtime.
 
 Protocol summary:
 - Every node has a persistent Ed25519 identity key.
 - Peers pin each other's public keys in contacts.json.
 - Signaling messages are signed JSON envelopes.
 - Rendezvous transport is either:
-  - onion: connect to peer hidden service through local Tor SOCKS
-  - direct: plain TCP (for local testing without Tor)
+  - onion: connect to peer hidden service through local OnionRelay SOCKS
+  - direct: plain TCP (for local testing without onion relay)
 - Data traffic uses WebRTC DataChannels (aiortc).
 - If a session dies, the initiator automatically re-runs signaling.
 """
@@ -37,21 +37,21 @@ from typing import Any, Optional
 from aiortc import RTCConfiguration, RTCDataChannel, RTCIceServer, RTCPeerConnection
 from aiortc import RTCSessionDescription
 
-from pp2p_core import Pp2pCore, Pp2pCoreError
+from p4_core import P4Core, P4CoreError
 
 
 PROTOCOL_VERSION = 1
 IDENTITY_FILE = "identity_ed25519.json"
 LEGACY_IDENTITY_FILE = "identity_ed25519.pem"
 CONTACTS_FILE = "contacts.json"
-TOR_DIR = "tor"
-TOR_DATA_DIR = "data"
-TORRC_FILE = "torrc"
+ONIONRELAY_DIR = "onionrelay"
+ONIONRELAY_DATA_DIR = "data"
+ONIONRELAYRC_FILE = "onionrelayrc"
 ONION_KEY_BLOB_FILE = "onion_v3_key_blob.txt"
 ONION_SERVICE_ID_FILE = "onion_service_id.txt"
 REPO_ROOT = Path(__file__).resolve().parent
 MAX_ENVELOPE_SKEW_MS = 24 * 3600 * 1000
-_PP2P_CORE: Optional[Pp2pCore] = None
+_P4_CORE: Optional[P4Core] = None
 
 
 def log(msg: str) -> None:
@@ -91,27 +91,27 @@ def b64e(data: bytes) -> str:
     return base64.b64encode(data).decode("ascii")
 
 
-def get_pp2p_core() -> Pp2pCore:
-    global _PP2P_CORE
-    if _PP2P_CORE is not None:
-        return _PP2P_CORE
+def get_p4_core() -> P4Core:
+    global _P4_CORE
+    if _P4_CORE is not None:
+        return _P4_CORE
 
-    lib_override = os.environ.get("PP2P_CORE_LIB")
+    lib_override = os.environ.get("P4_CORE_LIB")
     try:
-        _PP2P_CORE = Pp2pCore(lib_override if lib_override else None)
+        _P4_CORE = P4Core(lib_override if lib_override else None)
     except OSError as exc:
         raise RuntimeError(
-            "Failed to load PP2P Rust core library. "
-            "Build it first with scripts/build_pp2p_core.ps1 (Windows) or "
-            "scripts/build_pp2p_core_unix.sh (Linux/macOS), or set PP2P_CORE_LIB."
+            "Failed to load P4 Rust core library. "
+            "Build it first with scripts/build_p4_core.ps1 (Windows) or "
+            "scripts/build_p4_core_unix.sh (Linux/macOS), or set P4_CORE_LIB."
         ) from exc
-    return _PP2P_CORE
+    return _P4_CORE
 
 
 def derive_turn_rest_credentials(
     shared_secret: str,
     ttl_seconds: int,
-    user_hint: str = "pp2p",
+    user_hint: str = "p4",
 ) -> tuple[str, str]:
     """
     Generate ephemeral TURN credentials compatible with TURN REST auth style.
@@ -165,44 +165,34 @@ def pick_onion_port_trio(state_dir: Path) -> tuple[int, int, int]:
     raise RuntimeError("Could not find a free local onion port trio")
 
 
-def local_tor_binary_candidates() -> list[Path]:
+def local_onionrelay_binary_candidates() -> list[Path]:
     return [
-        REPO_ROOT / "tor_win_min_src" / "src" / "app" / "tor.exe",
-        REPO_ROOT / "tor_min_windows" / "src" / "app" / "tor.exe",
-        REPO_ROOT / "tor_min_src" / "src" / "app" / "tor.exe",
-        REPO_ROOT / "torbackup" / "tor" / "src" / "app" / "tor.exe",
-        REPO_ROOT / "tor" / "src" / "app" / "tor.exe",
-        REPO_ROOT / "tor_min_src" / "src" / "app" / "tor",
-        REPO_ROOT / "torbackup" / "tor" / "src" / "app" / "tor",
-        REPO_ROOT / "tor" / "src" / "app" / "tor",
+        REPO_ROOT / "onionrelay_src" / "src" / "app" / "onionrelay.exe",
+        REPO_ROOT / "onionrelay_src" / "src" / "app" / "onionrelay",
+        REPO_ROOT / "dist" / "onionrelay.exe",
+        REPO_ROOT / "dist" / "onionrelay",
     ]
 
 
-def resolve_tor_binary_path(tor_bin: Optional[str]) -> str:
+def resolve_onionrelay_binary_path(onionrelay_bin: Optional[str]) -> str:
     """
-    Resolve a Tor runtime binary.
+    Resolve an OnionRelay runtime binary.
 
     Priority:
-    1) explicit --tor-bin from caller
-    2) local source-built Tor candidates in this repo
+    1) explicit --onionrelay-bin from caller
+    2) local source-built OnionRelay candidates in this repo
     """
-    if tor_bin:
-        found = shutil.which(tor_bin) or tor_bin
+    if onionrelay_bin:
+        found = shutil.which(onionrelay_bin) or onionrelay_bin
         p = Path(found)
-        normalized = str(p).lower()
-        if normalized.endswith("\\chocolatey\\bin\\tor.exe"):
-            choco_root = Path(os.environ.get("ChocolateyInstall", r"C:\ProgramData\chocolatey"))
-            real = choco_root / "lib" / "tor" / "tools" / "Tor" / "tor.exe"
-            if real.exists():
-                return str(real)
         if os.name == "nt" and p.exists() and p.suffix.lower() != ".exe":
             raise RuntimeError(
-                f"Tor binary must be a native Windows executable (.exe): {p}. "
-                "Build Windows Tor subset or provide a .exe path."
+                f"OnionRelay binary must be a native Windows executable (.exe): {p}. "
+                "Build Windows OnionRelay subset or provide a .exe path."
             )
         return str(p)
 
-    for candidate in local_tor_binary_candidates():
+    for candidate in local_onionrelay_binary_candidates():
         if not candidate.exists():
             continue
         if os.name == "nt" and candidate.suffix.lower() != ".exe":
@@ -213,9 +203,9 @@ def resolve_tor_binary_path(tor_bin: Optional[str]) -> str:
             return str(candidate)
 
     raise RuntimeError(
-        "No compatible Tor binary found. Build local Tor subset for this OS "
-        "(for example: build_tor_subset_windows_mingw.sh on Windows) "
-        "or pass --tor-bin explicitly."
+        "No compatible OnionRelay binary found. Build local OnionRelay subset for this OS "
+        "(for example: build_onionrelay_windows.ps1 on Windows) "
+        "or pass --onionrelay-bin explicitly."
     )
 
 
@@ -255,7 +245,7 @@ class Identity:
     peer_id: str
 
     @staticmethod
-    def load_or_create(path: Path, core: Pp2pCore) -> "Identity":
+    def load_or_create(path: Path, core: P4Core) -> "Identity":
         ensure_parent(path)
         if path.exists():
             raw = json.loads(path.read_text(encoding="utf-8"))
@@ -285,7 +275,7 @@ class Identity:
         return identity
 
     @staticmethod
-    def _migrate_legacy_pem(path: Path, legacy_path: Path, core: Pp2pCore) -> "Identity":
+    def _migrate_legacy_pem(path: Path, legacy_path: Path, core: P4Core) -> "Identity":
         try:
             from cryptography.hazmat.primitives import serialization
             from cryptography.hazmat.primitives.asymmetric import ed25519
@@ -365,16 +355,16 @@ class RuntimeConfig:
     turn_secret: Optional[str]
     turn_ttl_seconds: int
     turn_user: str
-    tor_bin: Optional[str]
-    tor_socks_port: int
-    tor_control_port: int
+    onionrelay_bin: Optional[str]
+    onionrelay_socks_port: int
+    onionrelay_control_port: int
     no_stdin: bool
 
 
-class PP2PNode:
+class P4Node:
     def __init__(self, cfg: RuntimeConfig) -> None:
         self.cfg = cfg
-        self.core = get_pp2p_core()
+        self.core = get_p4_core()
         self.identity = Identity.load_or_create(self.cfg.state_dir / IDENTITY_FILE, self.core)
         self.contacts: dict[str, Contact] = {}
         self.sessions: dict[str, Session] = {}
@@ -384,10 +374,10 @@ class PP2PNode:
         self._maintainers: list[asyncio.Task[Any]] = []
         self._stdin_task: Optional[asyncio.Task[Any]] = None
         self._stop = asyncio.Event()
-        self._tor_proc: Optional[asyncio.subprocess.Process] = None
-        self._tor_log_task: Optional[asyncio.Task[Any]] = None
-        self._tor_control_reader: Optional[asyncio.StreamReader] = None
-        self._tor_control_writer: Optional[asyncio.StreamWriter] = None
+        self._onionrelay_proc: Optional[asyncio.subprocess.Process] = None
+        self._onionrelay_log_task: Optional[asyncio.Task[Any]] = None
+        self._onionrelay_control_reader: Optional[asyncio.StreamReader] = None
+        self._onionrelay_control_writer: Optional[asyncio.StreamWriter] = None
         self._onion_service_id: Optional[str] = None
         self._own_rendezvous: Optional[Rendezvous] = None
         self._turn_mode = "none"
@@ -438,20 +428,20 @@ class PP2PNode:
     def _contacts_path(self) -> Path:
         return self.cfg.state_dir / CONTACTS_FILE
 
-    def _tor_root(self) -> Path:
-        return self.cfg.state_dir / TOR_DIR
+    def _onionrelay_root(self) -> Path:
+        return self.cfg.state_dir / ONIONRELAY_DIR
 
-    def _tor_data(self) -> Path:
-        return self._tor_root() / TOR_DATA_DIR
+    def _onionrelay_data(self) -> Path:
+        return self._onionrelay_root() / ONIONRELAY_DATA_DIR
 
-    def _torrc_path(self) -> Path:
-        return self._tor_root() / TORRC_FILE
+    def _onionrelayrc_path(self) -> Path:
+        return self._onionrelay_root() / ONIONRELAYRC_FILE
 
     def _onion_key_blob_path(self) -> Path:
-        return self._tor_root() / ONION_KEY_BLOB_FILE
+        return self._onionrelay_root() / ONION_KEY_BLOB_FILE
 
     def _onion_service_id_path(self) -> Path:
-        return self._tor_root() / ONION_SERVICE_ID_FILE
+        return self._onionrelay_root() / ONION_SERVICE_ID_FILE
 
     async def run(self) -> None:
         self.cfg.state_dir.mkdir(parents=True, exist_ok=True)
@@ -465,8 +455,8 @@ class PP2PNode:
         log(
             "Local ports: "
             f"signal={self.cfg.signal_port} "
-            f"socks={self.cfg.tor_socks_port} "
-            f"control={self.cfg.tor_control_port}"
+            f"socks={self.cfg.onionrelay_socks_port} "
+            f"control={self.cfg.onionrelay_control_port}"
         )
         log(
             f"ICE: stun={self.cfg.stun_server} "
@@ -500,32 +490,32 @@ class PP2PNode:
             await self.server.wait_closed()
             self.server = None
 
-        if self._tor_log_task:
-            self._tor_log_task.cancel()
+        if self._onionrelay_log_task:
+            self._onionrelay_log_task.cancel()
             with contextlib.suppress(asyncio.CancelledError):
-                await self._tor_log_task
-            self._tor_log_task = None
+                await self._onionrelay_log_task
+            self._onionrelay_log_task = None
 
-        if self._tor_control_writer:
+        if self._onionrelay_control_writer:
             if self._onion_service_id:
                 with contextlib.suppress(Exception):
-                    await self._tor_control_command(f"DEL_ONION {self._onion_service_id}")
+                    await self._onionrelay_control_command(f"DEL_ONION {self._onion_service_id}")
                 self._onion_service_id = None
-            self._tor_control_writer.close()
+            self._onionrelay_control_writer.close()
             with contextlib.suppress(Exception):
-                await self._tor_control_writer.wait_closed()
-            self._tor_control_writer = None
-            self._tor_control_reader = None
+                await self._onionrelay_control_writer.wait_closed()
+            self._onionrelay_control_writer = None
+            self._onionrelay_control_reader = None
 
-        if self._tor_proc:
-            if self._tor_proc.returncode is None:
-                self._tor_proc.terminate()
+        if self._onionrelay_proc:
+            if self._onionrelay_proc.returncode is None:
+                self._onionrelay_proc.terminate()
                 try:
-                    await asyncio.wait_for(self._tor_proc.wait(), timeout=5)
+                    await asyncio.wait_for(self._onionrelay_proc.wait(), timeout=5)
                 except asyncio.TimeoutError:
-                    self._tor_proc.kill()
-                    await self._tor_proc.wait()
-            self._tor_proc = None
+                    self._onionrelay_proc.kill()
+                    await self._onionrelay_proc.wait()
+            self._onionrelay_proc = None
 
     def stop(self) -> None:
         self._stop.set()
@@ -552,7 +542,7 @@ class PP2PNode:
 
     async def _setup_rendezvous(self) -> None:
         if self.cfg.mode == "onion":
-            await self._start_tor()
+            await self._start_onionrelay()
         elif self.cfg.mode == "direct":
             self._own_rendezvous = Rendezvous(
                 transport="direct",
@@ -562,33 +552,33 @@ class PP2PNode:
         else:
             raise RuntimeError(f"Unsupported mode: {self.cfg.mode}")
 
-    async def _start_tor(self, wait_bootstrap: bool = True, quiet: bool = False) -> None:
-        tor_bin = resolve_tor_binary_path(self.cfg.tor_bin)
-        tor_path = Path(tor_bin)
-        if not tor_path.exists() and not shutil.which(tor_bin):
-            raise RuntimeError(f"Tor binary not found: {tor_bin}")
-        if os.name == "nt" and tor_path.exists() and tor_path.suffix.lower() != ".exe":
+    async def _start_onionrelay(self, wait_bootstrap: bool = True, quiet: bool = False) -> None:
+        onionrelay_bin = resolve_onionrelay_binary_path(self.cfg.onionrelay_bin)
+        onionrelay_path = Path(onionrelay_bin)
+        if not onionrelay_path.exists() and not shutil.which(onionrelay_bin):
+            raise RuntimeError(f"OnionRelay binary not found: {onionrelay_bin}")
+        if os.name == "nt" and onionrelay_path.exists() and onionrelay_path.suffix.lower() != ".exe":
             raise RuntimeError(
-                f"Refusing non-Windows Tor binary on Windows: {tor_path}. "
-                "Use tor.exe built from the local source subset."
+                f"Refusing non-Windows OnionRelay binary on Windows: {onionrelay_path}. "
+                "Use onionrelay.exe built from the local source subset."
             )
 
-        self._tor_root().mkdir(parents=True, exist_ok=True)
-        self._tor_data().mkdir(parents=True, exist_ok=True)
+        self._onionrelay_root().mkdir(parents=True, exist_ok=True)
+        self._onionrelay_data().mkdir(parents=True, exist_ok=True)
 
-        torrc = [
-            f"SocksPort {self.cfg.tor_socks_port}",
-            f"ControlPort {self.cfg.tor_control_port}",
-            f"DataDirectory {self._tor_data().resolve()}",
+        relayrc = [
+            f"SocksPort {self.cfg.onionrelay_socks_port}",
+            f"ControlPort {self.cfg.onionrelay_control_port}",
+            f"DataDirectory {self._onionrelay_data().resolve()}",
             "CookieAuthentication 0",
             "ClientOnly 1",
             "AvoidDiskWrites 1",
             "Log notice stdout",
         ]
-        self._torrc_path().write_text("\n".join(torrc) + "\n", encoding="utf-8")
+        self._onionrelayrc_path().write_text("\n".join(relayrc) + "\n", encoding="utf-8")
 
         if not quiet:
-            log("Starting Tor process...")
+            log("Starting OnionRelay process...")
         proc_env = os.environ.copy()
         if os.name == "nt":
             mingw_bin = Path(r"C:\msys64\mingw64\bin")
@@ -598,57 +588,57 @@ class PP2PNode:
                 if str(mingw_bin) not in path_parts:
                     proc_env["PATH"] = str(mingw_bin) + (";" + current_path if current_path else "")
         if quiet:
-            self._tor_proc = await asyncio.create_subprocess_exec(
-                tor_bin,
+            self._onionrelay_proc = await asyncio.create_subprocess_exec(
+                onionrelay_bin,
                 "-f",
-                str(self._torrc_path()),
+                str(self._onionrelayrc_path()),
                 stdout=asyncio.subprocess.DEVNULL,
                 stderr=asyncio.subprocess.DEVNULL,
                 env=proc_env,
             )
         else:
-            self._tor_proc = await asyncio.create_subprocess_exec(
-                tor_bin,
+            self._onionrelay_proc = await asyncio.create_subprocess_exec(
+                onionrelay_bin,
                 "-f",
-                str(self._torrc_path()),
+                str(self._onionrelayrc_path()),
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.STDOUT,
                 env=proc_env,
             )
-            self._tor_log_task = asyncio.create_task(self._pump_tor_logs(), name="tor-log")
+            self._onionrelay_log_task = asyncio.create_task(self._pump_onionrelay_logs(), name="onionrelay-log")
 
-        await self._wait_for_local_port("127.0.0.1", self.cfg.tor_socks_port, timeout=120)
-        await self._wait_for_local_port("127.0.0.1", self.cfg.tor_control_port, timeout=120)
-        await self._open_tor_control()
-        await self._tor_authenticate()
-        service_id = await self._tor_add_onion_service(self.cfg.signal_port)
+        await self._wait_for_local_port("127.0.0.1", self.cfg.onionrelay_socks_port, timeout=120)
+        await self._wait_for_local_port("127.0.0.1", self.cfg.onionrelay_control_port, timeout=120)
+        await self._open_onionrelay_control()
+        await self._onionrelay_authenticate()
+        service_id = await self._onionrelay_add_onion_service(self.cfg.signal_port)
         if wait_bootstrap:
-            await self._wait_for_tor_bootstrap(timeout=360)
+            await self._wait_for_onionrelay_bootstrap(timeout=360)
         self._onion_service_id = service_id
         onion = f"{service_id}.onion"
         self._own_rendezvous = Rendezvous(transport="onion", address=onion, port=80)
         if not quiet:
-            log(f"Tor onion ready: {onion}")
+            log(f"Onion relay ready: {onion}")
 
-    async def _open_tor_control(self) -> None:
-        self._tor_control_reader, self._tor_control_writer = await asyncio.open_connection(
+    async def _open_onionrelay_control(self) -> None:
+        self._onionrelay_control_reader, self._onionrelay_control_writer = await asyncio.open_connection(
             "127.0.0.1",
-            self.cfg.tor_control_port,
+            self.cfg.onionrelay_control_port,
         )
 
-    async def _tor_authenticate(self) -> None:
+    async def _onionrelay_authenticate(self) -> None:
         try:
-            await self._tor_control_command("AUTHENTICATE")
+            await self._onionrelay_control_command("AUTHENTICATE")
             return
         except Exception:
             pass
-        await self._tor_control_command('AUTHENTICATE ""')
+        await self._onionrelay_control_command('AUTHENTICATE ""')
 
-    async def _tor_add_onion_service(self, local_port: int) -> str:
+    async def _onionrelay_add_onion_service(self, local_port: int) -> str:
         existing_blob = self._load_onion_key_blob()
         key_spec = f"ED25519-V3:{existing_blob}" if existing_blob else "NEW:ED25519-V3"
         cmd = f"ADD_ONION {key_spec} Flags=Detach Port=80,127.0.0.1:{local_port}"
-        lines = await self._tor_control_command(cmd)
+        lines = await self._onionrelay_control_command(cmd)
 
         service_id: Optional[str] = None
         new_key_blob: Optional[str] = None
@@ -678,37 +668,37 @@ class PP2PNode:
         blob = path.read_text(encoding="utf-8").strip()
         return blob or None
 
-    async def _tor_control_command(self, command: str) -> list[str]:
-        if not self._tor_control_reader or not self._tor_control_writer:
-            raise RuntimeError("Tor control connection is not open")
+    async def _onionrelay_control_command(self, command: str) -> list[str]:
+        if not self._onionrelay_control_reader or not self._onionrelay_control_writer:
+            raise RuntimeError("OnionRelay control connection is not open")
 
-        self._tor_control_writer.write((command + "\r\n").encode("utf-8"))
-        await self._tor_control_writer.drain()
+        self._onionrelay_control_writer.write((command + "\r\n").encode("utf-8"))
+        await self._onionrelay_control_writer.drain()
 
         lines: list[str] = []
         while True:
-            raw = await self._tor_control_reader.readline()
+            raw = await self._onionrelay_control_reader.readline()
             if not raw:
-                raise RuntimeError("EOF from Tor control port")
+                raise RuntimeError("EOF from OnionRelay control port")
 
             line = raw.decode("utf-8", errors="replace").rstrip("\r\n")
             if len(line) < 3 or not line[:3].isdigit():
-                raise RuntimeError(f"Malformed Tor control reply: {line}")
+                raise RuntimeError(f"Malformed OnionRelay control reply: {line}")
 
             code = int(line[:3])
             sep = line[3] if len(line) >= 4 else " "
             rest = line[4:] if len(line) > 4 else ""
 
             if code >= 400:
-                raise RuntimeError(f"Tor control error {code}: {rest}")
+                raise RuntimeError(f"OnionRelay control error {code}: {rest}")
 
             if sep == "+":
                 # Data block mode; read until a single "." line.
                 lines.append(rest)
                 while True:
-                    chunk = await self._tor_control_reader.readline()
+                    chunk = await self._onionrelay_control_reader.readline()
                     if not chunk:
-                        raise RuntimeError("EOF during Tor control data block")
+                        raise RuntimeError("EOF during OnionRelay control data block")
                     text = chunk.decode("utf-8", errors="replace").rstrip("\r\n")
                     if text == ".":
                         break
@@ -722,25 +712,25 @@ class PP2PNode:
                 return lines
             if sep == "-":
                 continue
-            raise RuntimeError(f"Unexpected Tor control line separator: {line}")
+            raise RuntimeError(f"Unexpected OnionRelay control line separator: {line}")
 
-    async def _wait_for_tor_bootstrap(self, timeout: float) -> None:
+    async def _wait_for_onionrelay_bootstrap(self, timeout: float) -> None:
         deadline = time.monotonic() + timeout
         while True:
-            if self._tor_proc and self._tor_proc.returncode is not None:
-                raise RuntimeError(f"Tor exited with code {self._tor_proc.returncode}")
+            if self._onionrelay_proc and self._onionrelay_proc.returncode is not None:
+                raise RuntimeError(f"OnionRelay exited with code {self._onionrelay_proc.returncode}")
 
             try:
-                lines = await self._tor_control_command("GETINFO status/bootstrap-phase")
+                lines = await self._onionrelay_control_command("GETINFO status/bootstrap-phase")
                 progress = self._extract_bootstrap_progress(lines)
                 if progress >= 100:
                     return
             except Exception:
-                # Keep waiting while Tor settles.
+                # Keep waiting while OnionRelay settles.
                 pass
 
             if time.monotonic() > deadline:
-                raise TimeoutError("Tor bootstrap did not reach 100% in time")
+                raise TimeoutError("OnionRelay bootstrap did not reach 100% in time")
             await asyncio.sleep(1.0)
 
     @staticmethod
@@ -757,24 +747,24 @@ class PP2PNode:
                             return -1
         return -1
 
-    async def _pump_tor_logs(self) -> None:
-        if not self._tor_proc or not self._tor_proc.stdout:
+    async def _pump_onionrelay_logs(self) -> None:
+        if not self._onionrelay_proc or not self._onionrelay_proc.stdout:
             return
         while True:
-            line = await self._tor_proc.stdout.readline()
+            line = await self._onionrelay_proc.stdout.readline()
             if not line:
                 return
             text = line.decode("utf-8", errors="replace").rstrip()
             if text:
-                log(f"[tor] {text}")
+                log(f"[onionrelay] {text}")
 
     async def _wait_for_local_port(self, host: str, port: int, timeout: float) -> None:
         deadline = time.monotonic() + timeout
         while True:
-            if self._tor_proc and self._tor_proc.returncode is not None:
+            if self._onionrelay_proc and self._onionrelay_proc.returncode is not None:
                 raise RuntimeError(
-                    "Tor process exited before opening local ports. "
-                    "On Windows, ensure these DLLs exist next to tor.exe: "
+                    "OnionRelay process exited before opening local ports. "
+                    "On Windows, ensure these DLLs exist next to onionrelay.exe: "
                     "libcrypto-3-x64.dll, libssl-3-x64.dll, libevent-7.dll, "
                     "liblzma-5.dll, zlib1.dll, libzstd.dll, libwinpthread-1.dll."
                 )
@@ -1008,7 +998,7 @@ class PP2PNode:
                 nonce=secrets.token_hex(16),
                 timestamp_ms=int(time.time() * 1000),
             )
-        except Pp2pCoreError as exc:
+        except P4CoreError as exc:
             raise RuntimeError(f"Envelope signing failed: {exc}") from exc
 
     async def _validate_message(
@@ -1043,7 +1033,7 @@ class PP2PNode:
                 now_ms=int(time.time() * 1000),
                 max_skew_ms=MAX_ENVELOPE_SKEW_MS,
             )
-        except Pp2pCoreError as exc:
+        except P4CoreError as exc:
             raise RuntimeError(f"Signature verification failed: {exc}") from exc
 
         if self.replay.seen(from_peer_id, nonce):
@@ -1070,7 +1060,7 @@ class PP2PNode:
                 await writer.wait_closed()
 
     async def _open_onion_stream(self, onion_host: str, onion_port: int) -> tuple[asyncio.StreamReader, asyncio.StreamWriter]:
-        reader, writer = await asyncio.open_connection("127.0.0.1", self.cfg.tor_socks_port)
+        reader, writer = await asyncio.open_connection("127.0.0.1", self.cfg.onionrelay_socks_port)
         try:
             await self._socks5_handshake(reader, writer, onion_host, onion_port)
             return reader, writer
@@ -1140,7 +1130,7 @@ class PP2PNode:
         self._print_help()
         while not self._stop.is_set():
             try:
-                line = await asyncio.to_thread(input, "pp2p> ")
+                line = await asyncio.to_thread(input, "p4> ")
             except (EOFError, KeyboardInterrupt):
                 self.stop()
                 return
@@ -1294,7 +1284,7 @@ class PP2PNode:
 
 def state_identity(state_dir: Path) -> Identity:
     state_dir.mkdir(parents=True, exist_ok=True)
-    return Identity.load_or_create(state_dir / IDENTITY_FILE, get_pp2p_core())
+    return Identity.load_or_create(state_dir / IDENTITY_FILE, get_p4_core())
 
 
 def load_contacts(state_dir: Path) -> dict[str, Contact]:
@@ -1313,7 +1303,7 @@ def save_contacts(state_dir: Path, contacts: dict[str, Contact]) -> None:
 def build_invite_from_state(state_dir: Path, mode: str, advertise: str) -> dict[str, Any]:
     ident = state_identity(state_dir)
     if mode == "onion":
-        service_id_path = state_dir / TOR_DIR / ONION_SERVICE_ID_FILE
+        service_id_path = state_dir / ONIONRELAY_DIR / ONION_SERVICE_ID_FILE
         if not service_id_path.exists():
             raise RuntimeError(
                 f"Missing onion service id file: {service_id_path}. "
@@ -1336,38 +1326,38 @@ def resolve_runtime_ports_for_mode(
     mode: str,
     state_dir: Path,
     signal_port: Optional[int],
-    tor_socks_port: Optional[int],
-    tor_control_port: Optional[int],
+    onionrelay_socks_port: Optional[int],
+    onionrelay_control_port: Optional[int],
 ) -> tuple[int, int, int]:
     if mode == "onion":
-        if signal_port is None and tor_socks_port is None and tor_control_port is None:
-            signal_port, tor_socks_port, tor_control_port = pick_onion_port_trio(state_dir)
+        if signal_port is None and onionrelay_socks_port is None and onionrelay_control_port is None:
+            signal_port, onionrelay_socks_port, onionrelay_control_port = pick_onion_port_trio(state_dir)
         else:
             if signal_port is None:
                 signal_port = 18080
-            if tor_socks_port is None:
-                tor_socks_port = 19050
-            if tor_control_port is None:
-                tor_control_port = 19051
+            if onionrelay_socks_port is None:
+                onionrelay_socks_port = 19050
+            if onionrelay_control_port is None:
+                onionrelay_control_port = 19051
     else:
         if signal_port is None:
             signal_port = 18080
-        if tor_socks_port is None:
-            tor_socks_port = 19050
-        if tor_control_port is None:
-            tor_control_port = 19051
-    return int(signal_port), int(tor_socks_port), int(tor_control_port)
+        if onionrelay_socks_port is None:
+            onionrelay_socks_port = 19050
+        if onionrelay_control_port is None:
+            onionrelay_control_port = 19051
+    return int(signal_port), int(onionrelay_socks_port), int(onionrelay_control_port)
 
 
 async def ensure_onion_identity_async(
     state_dir: Path,
-    tor_bin: Optional[str],
+    onionrelay_bin: Optional[str],
     signal_port: Optional[int],
-    tor_socks_port: Optional[int],
-    tor_control_port: Optional[int],
+    onionrelay_socks_port: Optional[int],
+    onionrelay_control_port: Optional[int],
 ) -> None:
-    service_id_path = state_dir / TOR_DIR / ONION_SERVICE_ID_FILE
-    key_blob_path = state_dir / TOR_DIR / ONION_KEY_BLOB_FILE
+    service_id_path = state_dir / ONIONRELAY_DIR / ONION_SERVICE_ID_FILE
+    key_blob_path = state_dir / ONIONRELAY_DIR / ONION_KEY_BLOB_FILE
     if service_id_path.exists() and key_blob_path.exists():
         return
 
@@ -1376,8 +1366,8 @@ async def ensure_onion_identity_async(
         mode="onion",
         state_dir=state_dir,
         signal_port=signal_port,
-        tor_socks_port=tor_socks_port,
-        tor_control_port=tor_control_port,
+        onionrelay_socks_port=onionrelay_socks_port,
+        onionrelay_control_port=onionrelay_control_port,
     )
     cfg = RuntimeConfig(
         state_dir=state_dir,
@@ -1392,15 +1382,15 @@ async def ensure_onion_identity_async(
         turn_password=None,
         turn_secret=None,
         turn_ttl_seconds=3600,
-        turn_user="pp2p",
-        tor_bin=tor_bin,
-        tor_socks_port=socks,
-        tor_control_port=control,
+        turn_user="p4",
+        onionrelay_bin=onionrelay_bin,
+        onionrelay_socks_port=socks,
+        onionrelay_control_port=control,
         no_stdin=True,
     )
-    node = PP2PNode(cfg)
+    node = P4Node(cfg)
     try:
-        await node._start_tor(wait_bootstrap=False, quiet=True)
+        await node._start_onionrelay(wait_bootstrap=False, quiet=True)
     finally:
         with contextlib.suppress(Exception):
             await node.shutdown()
@@ -1420,16 +1410,16 @@ def cmd_init(args: argparse.Namespace) -> int:
 def cmd_invite(args: argparse.Namespace) -> int:
     state_dir = Path(args.state_dir).resolve()
     if args.mode == "onion":
-        service_id_path = state_dir / TOR_DIR / ONION_SERVICE_ID_FILE
-        key_blob_path = state_dir / TOR_DIR / ONION_KEY_BLOB_FILE
+        service_id_path = state_dir / ONIONRELAY_DIR / ONION_SERVICE_ID_FILE
+        key_blob_path = state_dir / ONIONRELAY_DIR / ONION_KEY_BLOB_FILE
         if not (service_id_path.exists() and key_blob_path.exists()):
             asyncio.run(
                 ensure_onion_identity_async(
                     state_dir=state_dir,
-                    tor_bin=args.tor_bin,
+                    onionrelay_bin=args.onionrelay_bin,
                     signal_port=args.signal_port,
-                    tor_socks_port=args.tor_socks_port,
-                    tor_control_port=args.tor_control_port,
+                    onionrelay_socks_port=args.onionrelay_socks_port,
+                    onionrelay_control_port=args.onionrelay_control_port,
                 )
             )
     invite = build_invite_from_state(state_dir, args.mode, args.advertise)
@@ -1465,12 +1455,12 @@ def cmd_add_contact(args: argparse.Namespace) -> int:
 
 async def cmd_run_async(args: argparse.Namespace) -> int:
     state_dir = Path(args.state_dir).resolve()
-    signal_port, tor_socks_port, tor_control_port = resolve_runtime_ports_for_mode(
+    signal_port, onionrelay_socks_port, onionrelay_control_port = resolve_runtime_ports_for_mode(
         mode=args.mode,
         state_dir=state_dir,
         signal_port=args.signal_port,
-        tor_socks_port=args.tor_socks_port,
-        tor_control_port=args.tor_control_port,
+        onionrelay_socks_port=args.onionrelay_socks_port,
+        onionrelay_control_port=args.onionrelay_control_port,
     )
 
     cfg = RuntimeConfig(
@@ -1487,13 +1477,13 @@ async def cmd_run_async(args: argparse.Namespace) -> int:
         turn_secret=args.turn_secret,
         turn_ttl_seconds=int(args.turn_ttl_seconds),
         turn_user=args.turn_user,
-        tor_bin=args.tor_bin,
-        tor_socks_port=int(tor_socks_port),
-        tor_control_port=int(tor_control_port),
+        onionrelay_bin=args.onionrelay_bin,
+        onionrelay_socks_port=int(onionrelay_socks_port),
+        onionrelay_control_port=int(onionrelay_control_port),
         no_stdin=args.no_stdin,
     )
 
-    node = PP2PNode(cfg)
+    node = P4Node(cfg)
 
     loop = asyncio.get_running_loop()
     for sig in (signal.SIGINT, signal.SIGTERM):
@@ -1509,7 +1499,7 @@ def cmd_run(args: argparse.Namespace) -> int:
 
 
 def build_parser() -> argparse.ArgumentParser:
-    p = argparse.ArgumentParser(description="Persistent P2P node")
+    p = argparse.ArgumentParser(description="Persistent point-to-point node")
     sub = p.add_subparsers(dest="cmd", required=True)
 
     p_init = sub.add_parser("init", help="Create state directory + identity")
@@ -1525,15 +1515,15 @@ def build_parser() -> argparse.ArgumentParser:
         help="Only used in direct mode: host:port to advertise",
     )
     p_inv.add_argument(
-        "--tor-bin",
+        "--onionrelay-bin",
         help=(
-            "Optional Tor runtime path/name used when onion invite needs to auto-create "
+            "Optional OnionRelay runtime path/name used when onion invite needs to auto-create "
             "onion identity files."
         ),
     )
     p_inv.add_argument("--signal-port", type=int, default=None)
-    p_inv.add_argument("--tor-socks-port", type=int, default=None)
-    p_inv.add_argument("--tor-control-port", type=int, default=None)
+    p_inv.add_argument("--onionrelay-socks-port", type=int, default=None)
+    p_inv.add_argument("--onionrelay-control-port", type=int, default=None)
     p_inv.set_defaults(func=cmd_invite)
 
     p_add = sub.add_parser("add-contact", help="Import contact invite JSON")
@@ -1569,18 +1559,18 @@ def build_parser() -> argparse.ArgumentParser:
     )
     p_run.add_argument(
         "--turn-user",
-        default="pp2p",
+        default="p4",
         help="User hint embedded in auto-generated TURN REST username",
     )
     p_run.add_argument(
-        "--tor-bin",
+        "--onionrelay-bin",
         help=(
-            "Optional Tor runtime path/name. If omitted, pp2p looks for local source-built "
-            "binaries (tor_min_src, torbackup/tor, tor)."
+            "Optional OnionRelay runtime path/name. If omitted, p4 looks for local source-built "
+            "binaries (onionrelay_src/src/app/onionrelay or dist/onionrelay)."
         ),
     )
-    p_run.add_argument("--tor-socks-port", type=int, default=None)
-    p_run.add_argument("--tor-control-port", type=int, default=None)
+    p_run.add_argument("--onionrelay-socks-port", type=int, default=None)
+    p_run.add_argument("--onionrelay-control-port", type=int, default=None)
     p_run.add_argument("--no-stdin", action="store_true")
     p_run.set_defaults(func=cmd_run)
 
@@ -1599,3 +1589,7 @@ def main(argv: Optional[list[str]] = None) -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
+
+
+
+

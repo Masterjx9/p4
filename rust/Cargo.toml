@@ -1,7 +1,8 @@
-[workspace]
+﻿[workspace]
 members = [
-  "pp2p-core",
-  "pp2p-ffi",
+  "p4-core",
+  "p4-ffi",
 ]
 resolver = "2"
+
 

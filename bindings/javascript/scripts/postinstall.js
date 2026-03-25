@@ -10,20 +10,20 @@ function platformDir(platform, arch) {
 }
 
 function libName(platform) {
-  if (platform === "win32") return "pp2p_core.dll";
-  if (platform === "darwin") return "libpp2p_core.dylib";
-  return "libpp2p_core.so";
+  if (platform === "win32") return "p4_core.dll";
+  if (platform === "darwin") return "libp4_core.dylib";
+  return "libp4_core.so";
 }
 
-if (process.env.PP2P_CORE_LIB) {
+if (process.env.P4_CORE_LIB) {
   process.exit(0);
 }
 
 const dir = platformDir(process.platform, process.arch);
 if (!dir) {
   console.error(
-    `[pp2p-core-sdk] Unsupported platform ${process.platform}/${process.arch}. ` +
-      "Set PP2P_CORE_LIB to a valid native library path."
+    `[p4-core-sdk] Unsupported platform ${process.platform}/${process.arch}. ` +
+      "Set P4_CORE_LIB to a valid native library path."
   );
   process.exit(1);
 }
@@ -31,8 +31,9 @@ if (!dir) {
 const expected = path.resolve(__dirname, "..", "native", dir, libName(process.platform));
 if (!fs.existsSync(expected)) {
   console.error(
-    `[pp2p-core-sdk] Missing bundled native library: ${expected}. ` +
-      "Reinstall package or set PP2P_CORE_LIB."
+    `[p4-core-sdk] Missing bundled native library: ${expected}. ` +
+      "Reinstall package or set P4_CORE_LIB."
   );
   process.exit(1);
 }
+

@@ -43,9 +43,9 @@ bindings/javascript/native/*
 bindings/python/*.egg-info/
 bindings/python/build/
 bindings/python/dist/
-bindings/python/pp2p_core/native/**
-!bindings/python/pp2p_core/native/__init__.py
-!bindings/python/pp2p_core/native/.gitkeep
+bindings/python/p4_core/native/**
+!bindings/python/p4_core/native/__init__.py
+!bindings/python/p4_core/native/.gitkeep
 bindings/python_legacy/*.egg-info/
 bindings/python_legacy/build/
 bindings/python_legacy/dist/
@@ -55,18 +55,17 @@ bindings/cpp/build/
 tmp_python_sdk_dist/
 composer.lock
 
-# Onionrelay / Tor build outputs (keep source, ignore compiled artifacts)
-tor_win_min_src/src/app/tor.exe
-tor_win_min_src/src/app/tor
-tor_win_min_src/src/app/onionrelay
-tor_win_min_src/src/app/onionrelay*
-tor_win_min_src/src/app/*.dll
-tor_win_min_src/src/app/*.so
-tor_win_min_src/src/app/*.so.*
-tor_win_min_src/src/app/*.dylib
-tor_win_min_src/libtor.a
-tor_win_min_src/config.log
-tor_win_min_src/config.status
+# Onionrelay build outputs (keep source, ignore compiled artifacts)
+onionrelay_src/src/app/onionrelay
+onionrelay_src/src/app/onionrelay*
+onionrelay_src/src/app/*.exe
+onionrelay_src/src/app/*.dll
+onionrelay_src/src/app/*.so
+onionrelay_src/src/app/*.so.*
+onionrelay_src/src/app/*.dylib
+onionrelay_src/lib*.a
+onionrelay_src/config.log
+onionrelay_src/config.status
 
 # Fly.io test app artifacts (kept local only for WAN testing)
 fly_test_app/
@@ -74,3 +73,4 @@ fly.toml
 Procfile
 .dockerignore
 .github/workflows/fly-deploy.yml
+
