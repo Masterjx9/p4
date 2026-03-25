@@ -43,7 +43,8 @@ jobs:
             libzstd-dev \
             automake \
             libtool \
-            autoconf
+            autoconf \
+            gettext
 
       - name: Install macOS dependencies
         if: runner.os == 'macOS'
@@ -57,7 +58,8 @@ jobs:
             zstd \
             automake \
             libtool \
-            autoconf
+            autoconf \
+            gettext
 
       - name: Build onionrelay
         run: |

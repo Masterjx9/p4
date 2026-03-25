@@ -20,7 +20,7 @@ $cfgLog = Join-Path $repoRoot "build\onionrelay_configure.log"
 $makeLog = Join-Path $repoRoot "build\onionrelay_make.log"
 
 function Convert-ToMsysPath([string]$windowsPath) {
-    $resolved = (Resolve-Path $windowsPath).Path
+    $resolved = [System.IO.Path]::GetFullPath($windowsPath)
     $drive = $resolved.Substring(0, 1).ToLowerInvariant()
     $tail = $resolved.Substring(2).Replace('\', '/')
     return "/$drive$tail"
@@ -39,6 +39,18 @@ export PATH=/mingw64/bin:/usr/bin:$PATH
 cd "__SRC_DIR__"
 
 make distclean >/dev/null 2>&1 || true
+
+if [[ ! -x "./configure" ]]; then
+  chmod +x ./autogen.sh
+  if ! ./autogen.sh; then
+    if command -v autoreconf >/dev/null 2>&1; then
+      autoreconf -i -f -W all
+    else
+      echo "autogen failed and autoreconf is unavailable" >&2
+      exit 1
+    fi
+  fi
+fi
 
 ./configure \
   --disable-asciidoc \

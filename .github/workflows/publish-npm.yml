@@ -92,6 +92,7 @@ jobs:
             libtool
             make
             pkgconf
+            gettext
 
       - name: Install Linux dependencies (onionrelay)
         if: runner.os == 'Linux'
@@ -108,7 +109,8 @@ jobs:
             libzstd-dev \
             automake \
             libtool \
-            autoconf
+            autoconf \
+            gettext
 
       - name: Install macOS dependencies (onionrelay)
         if: runner.os == 'macOS'
@@ -123,7 +125,8 @@ jobs:
             zstd \
             automake \
             libtool \
-            autoconf
+            autoconf \
+            gettext
 
       - name: Build native core (Windows)
         if: runner.os == 'Windows'

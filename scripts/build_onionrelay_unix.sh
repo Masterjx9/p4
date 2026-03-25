@@ -52,7 +52,15 @@ rm -f config.log config.status || true
 # include pre-generated autotools outputs.
 if [[ ! -x "./configure" ]]; then
   chmod +x ./autogen.sh
-  ./autogen.sh
+  if ! ./autogen.sh; then
+    # Some environments fail on autogen warnings treated as errors.
+    if command -v autoreconf >/dev/null 2>&1; then
+      autoreconf -i -f -W all
+    else
+      echo "autogen failed and autoreconf is unavailable" >&2
+      exit 1
+    fi
+  fi
 fi
 
 make distclean >/dev/null 2>&1 || true
