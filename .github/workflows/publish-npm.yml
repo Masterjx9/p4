@@ -6,30 +6,25 @@ on:
     branches:
       - main
 
-env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+permissions:
+  id-token: write  # Required for OIDC
+  contents: read
+
 
 jobs:
   publish:
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      id-token: write
-
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - name: test
+        uses: actions/checkout@v6
 
-      - name: Setup Node
-        uses: actions/setup-node@v4
+      - name: test2
+        uses: actions/setup-node@v6
         with:
-          node-version: "24"
-
-      - name: Upgrade npm
-        run: |
-          npm install -g npm@11.11.1
-          npm --version
-
-      - name: Publish package
+          node-version: '24'
+          registry-url: 'https://registry.npmjs.org'
+        
+      - name: test3
         working-directory: bindings/javascript
         run: npm publish --access public
+
