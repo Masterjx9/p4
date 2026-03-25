@@ -38,6 +38,9 @@ function Get-MsysBashPath {
         if (-not (Test-Path $candidate)) {
             continue
         }
+        if ($isGitHubActions -and ($candidate -notmatch '(?i)msys64\\usr\\bin\\bash\.exe$')) {
+            continue
+        }
 
         # Reject WSL/Git-for-Windows bash; verify required MSYS2 tools exist.
         & $candidate -lc $toolCheck
@@ -111,6 +114,11 @@ cd "__SRC_DIR__"
 make distclean >/dev/null 2>&1 || true
 chmod +x ./scripts/build/combine_libs || true
 
+# In CI we always regenerate configure to avoid stale/broken snapshots.
+if [[ -n "${GITHUB_ACTIONS:-}" ]]; then
+  rm -f ./configure
+fi
+
 if [[ ! -f "./configure" ]]; then
   chmod +x ./autogen.sh
   ./autogen.sh || true
@@ -125,8 +133,9 @@ if [[ ! -f "./configure" ]]; then
   fi
 fi
 chmod +x ./configure
+sed -i 's/\r$//' ./configure || true
 
-./configure \
+bash ./configure \
   --disable-asciidoc \
   --disable-module-relay \
   --disable-module-dirauth \

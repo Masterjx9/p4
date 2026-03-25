@@ -143,6 +143,8 @@ jobs:
       - name: Build onionrelay (Windows)
         if: runner.os == 'Windows'
         shell: powershell
+        env:
+          MSYS2_ROOT: ${{ runner.temp }}\\msys64
         run: .\build_onionrelay_windows.ps1
 
       - name: Build onionrelay (Linux/macOS)
