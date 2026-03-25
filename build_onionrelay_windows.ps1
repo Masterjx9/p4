@@ -94,17 +94,20 @@ cd "__SRC_DIR__"
 make distclean >/dev/null 2>&1 || true
 chmod +x ./scripts/build/combine_libs || true
 
-if [[ ! -x "./configure" ]]; then
+if [[ ! -f "./configure" ]]; then
   chmod +x ./autogen.sh
-  if ! ./autogen.sh; then
-    if command -v autoreconf >/dev/null 2>&1; then
-      autoreconf -i -f
-    else
-      echo "autogen failed and autoreconf is unavailable" >&2
-      exit 1
-    fi
+  ./autogen.sh || true
+
+  if [[ ! -f "./configure" ]] && command -v autoreconf >/dev/null 2>&1; then
+    autoreconf -i -f || true
+  fi
+
+  if [[ ! -f "./configure" ]]; then
+    echo "Failed to generate ./configure (autogen/autoreconf)." >&2
+    exit 1
   fi
 fi
+chmod +x ./configure
 
 ./configure \
   --disable-asciidoc \

@@ -51,18 +51,22 @@ chmod +x ./scripts/build/combine_libs || true
 
 # Generate configure script when building from source snapshots that don't
 # include pre-generated autotools outputs.
-if [[ ! -x "./configure" ]]; then
+if [[ ! -f "./configure" ]]; then
   chmod +x ./autogen.sh
-  if ! ./autogen.sh; then
-    # Some environments fail on autogen warnings treated as errors.
-    if command -v autoreconf >/dev/null 2>&1; then
-      autoreconf -i -f
-    else
-      echo "autogen failed and autoreconf is unavailable" >&2
-      exit 1
-    fi
+  ./autogen.sh || true
+
+  # Some environments return non-zero from autogen even when most files were
+  # generated, so fall back and then verify the file exists.
+  if [[ ! -f "./configure" ]] && command -v autoreconf >/dev/null 2>&1; then
+    autoreconf -i -f || true
+  fi
+
+  if [[ ! -f "./configure" ]]; then
+    echo "Failed to generate ./configure (autogen/autoreconf)." >&2
+    exit 1
   fi
 fi
+chmod +x ./configure
 
 make distclean >/dev/null 2>&1 || true
 ./configure "${CONFIG_FLAGS[@]}"
